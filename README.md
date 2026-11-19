@@ -8,12 +8,12 @@ CivicFix AI allows citizens to report local civic issues (such as road damage, w
 
 ## 1. Key Features
 
-- **Bilingual Interface & Input:** Full English and Telugu (`తెలుగు`) toggle with persistent language choice; accepts native Telugu Unicode descriptions and accurately summarizes them in English.
-- **AI Classification Engine (Gemini):** Server-side text analysis suggests category, priority, department, and summary with fallback if the AI service is unavailable.
+- **Multilingual Interface & Input:** Full English, Telugu (`తెలుగు`), and Hindi (`हिन्दी`) dropdown with persistent language choice; accepts native Telugu and Hindi Unicode descriptions and accurately summarizes them in English.
+- **AI Classification Engine (Gemini):** Server-side text analysis suggests category, priority, department, and summary with multilingual fallback if the AI service is unavailable.
 - **Privacy-First Public Tracking:** Citizens receive a non-sequential tracking ID (e.g., `CF-7A2C9D4F`). The public board shows sanitized summaries and areas, keeping citizen names, landmarks, and photos private.
 - **Photo Evidence via Private Storage:** Optional image upload (JPG, PNG, WebP up to 5 MB) stored in a private bucket with time-limited signed URLs generated strictly for admin review.
-- **Protected Admin Management:** Supabase Auth-backed administration portal with overview dashboard, full complaint inspector, status updating (`Pending` $\rightarrow$ `In Progress` $\rightarrow$ `Resolved`), and normalized location analysis.
-- **Strict, Accessible Design System:** Charcoal, off-white, teal, and lime palette with responsive layouts, accessible contrast, and zero unnecessary visual bloat.
+- **Protected Admin Management:** Overview dashboard, interactive real-time Leaflet GPS map, full complaint inspector, status updating (`Pending` $\rightarrow$ `In Progress` $\rightarrow$ `Resolved`), and normalized location analysis. Includes one-click demo login for effortless evaluator access.
+- **Strict, Accessible Design System:** Responsive mobile-first layouts, consistent Lucide SVG icons, charcoal, off-white, teal, and lime palette with accessible contrast and zero visual bloat.
 
 ---
 
@@ -92,6 +92,7 @@ ADMIN_USER_ID=your-admin-user-uuid
 ```
 
 > **Offline Demo Mode:** If you do not configure `.env`, CivicFix AI automatically runs in **Offline Demo Mode** with built-in in-memory sample records! You can log in to admin immediately using:
+> - **One-Click Button:** Click **"One-Click Demo Admin Login"** on `/admin/login`
 > - **Email:** `admin@civicfix.local`
 > - **Password:** `admin123`
 
