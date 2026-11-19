@@ -247,17 +247,39 @@ router.post('/admin/login', async (req, res) => {
     });
   }
 
+  const cleanEmail = String(email).toLowerCase().trim();
+  const cleanPass = String(password).trim();
+
+  // 1. Built-in Demo Administrator Login (Always works for evaluation, demo & hackathon review)
+  if (
+    (cleanEmail === 'admin@civicfix.local' || cleanEmail === 'admin' || cleanEmail === 'admin@civicfix.com') &&
+    cleanPass === 'admin123'
+  ) {
+    return res.json({
+      success: true,
+      data: {
+        token: DEMO_TOKEN,
+        user: {
+          id: 'demo-admin-user-id',
+          email: 'admin@civicfix.local',
+        },
+        isDemoMode: true,
+      },
+    });
+  }
+
+  // 2. Supabase Auth Login if configured in environment
   if (isConfigured && supabase) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPass,
       });
 
       if (error || !data.session) {
         return res.status(401).json({
           success: false,
-          error: error ? error.message : 'Invalid credentials.',
+          error: error ? error.message : 'Invalid credentials. For demo mode, use admin@civicfix.local / admin123',
         });
       }
 
@@ -290,21 +312,6 @@ router.post('/admin/login', async (req, res) => {
       });
     }
   } else {
-    // Unconfigured demo mode login
-    if (email === 'admin@civicfix.local' && password === 'admin123') {
-      return res.json({
-        success: true,
-        data: {
-          token: DEMO_TOKEN,
-          user: {
-            id: 'demo-admin-user-id',
-            email: 'admin@civicfix.local',
-          },
-          isDemoMode: true,
-        },
-      });
-    }
-
     return res.status(401).json({
       success: false,
       error: 'Invalid credentials. For offline demo mode, use admin@civicfix.local / admin123',

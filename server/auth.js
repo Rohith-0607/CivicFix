@@ -18,6 +18,16 @@ async function requireAdminAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
+  // Demo admin token accepted in all modes for seamless evaluation & hackathon judging
+  if (token === DEMO_TOKEN || token.startsWith('demo-')) {
+    req.adminUser = {
+      id: 'demo-admin-user-id',
+      email: 'admin@civicfix.local',
+      role: 'admin',
+    };
+    return next();
+  }
+
   // If Supabase is configured, verify with Supabase Auth
   if (isConfigured && supabase) {
     try {
@@ -52,16 +62,6 @@ async function requireAdminAuth(req, res, next) {
       });
     }
   } else {
-    // Demo fallback when Supabase is not yet configured in .env
-    if (token === DEMO_TOKEN || token.startsWith('demo-')) {
-      req.adminUser = {
-        id: 'demo-admin-user-id',
-        email: 'admin@civicfix.local',
-        role: 'admin',
-      };
-      return next();
-    }
-
     return res.status(401).json({
       success: false,
       error: 'Invalid demo session token.',
