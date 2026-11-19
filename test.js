@@ -124,7 +124,94 @@ const server = app.listen(0, '127.0.0.1', async () => {
     }
     console.log(`✓ 10. All 8 routes return HTTP 200 OK`);
 
-    console.log('\n>>> ALL 10 ACCEPTANCE CRITERIA TESTS PASSED SUCCESSFULLY! <<<\n');
+    // 11. Security: Unauthorized access to Admin API rejected (401)
+    const rNoAuth = await fetch(`${base}/api/admin/summary`);
+    const rBadAuth = await fetch(`${base}/api/admin/summary`, {
+      headers: { Authorization: 'Bearer invalid-token-12345' },
+    });
+    if (rNoAuth.status !== 401 || rBadAuth.status !== 401) {
+      throw new Error(`Expected 401 Unauthorized for unprotected admin requests, got ${rNoAuth.status} and ${rBadAuth.status}`);
+    }
+    console.log(`✓ 11. Security: Admin endpoint rejects missing and invalid tokens (HTTP 401)`);
+
+    // 12. Security: Spoofed image magic bytes rejected (400)
+    const spoofedForm = new FormData();
+    spoofedForm.append('description', 'Attempting upload of malicious disguised payload.');
+    spoofedForm.append('location_area', 'Madhapur');
+    spoofedForm.append('category', 'Other');
+    spoofedForm.append('priority', 'Low');
+    const fakeJpg = Buffer.from('<?php echo "evil"; ?>NotARealImageFile');
+    spoofedForm.append('photo', new Blob([fakeJpg], { type: 'image/jpeg' }), 'script.jpg');
+    const rSpoof = await fetch(`${base}/api/complaints`, { method: 'POST', body: spoofedForm });
+    if (rSpoof.status !== 400) {
+      throw new Error(`Expected 400 Bad Request for spoofed image bytes, got ${rSpoof.status}`);
+    }
+    const jSpoof = await rSpoof.json();
+    console.log(`✓ 12. Security: Spoofed file bytes rejected with HTTP 400: "${jSpoof.error}"`);
+
+    // 13. Privacy: Public endpoints do not expose reporter_name or landmark
+    const rPublicCheck = await fetch(`${base}/api/issues`);
+    const jPublicCheck = await rPublicCheck.json();
+    for (const issue of jPublicCheck.data.issues) {
+      if (issue.landmark !== undefined || issue.reporter_name !== undefined || issue.admin_note !== undefined) {
+        throw new Error(`Public issues leaked private field on issue ${issue.tracking_code}`);
+      }
+    }
+    const rTrackPriv = await fetch(`${base}/api/track/${trackingCode}`);
+    const jTrackPriv = await rTrackPriv.json();
+    if (jTrackPriv.data.landmark !== undefined || jTrackPriv.data.reporter_name !== undefined || jTrackPriv.data.admin_note !== undefined) {
+      throw new Error('Track API leaked private reporter details');
+    }
+    console.log(`✓ 13. Privacy: Public APIs strictly omit reporter_name, landmark, and admin_note`);
+
+    // 14. Data Integrity: Unprovided GPS coordinates remain null
+    const rAdminNoGps = await fetch(`${base}/api/admin/complaints?search=${trackingCode}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const jAdminNoGps = await rAdminNoGps.json();
+    const noGpsRecord = jAdminNoGps.data.complaints.find((c) => c.tracking_code === trackingCode);
+    if (!noGpsRecord) throw new Error('Complaint record not found for GPS integrity check');
+    if (noGpsRecord.latitude !== null || noGpsRecord.longitude !== null) {
+      throw new Error(`Expected null coordinates for submission without GPS, got lat=${noGpsRecord.latitude}, lng=${noGpsRecord.longitude}`);
+    }
+    console.log(`✓ 14. Data Integrity: Submission without GPS coordinates retains null (never fabricated)`);
+
+    // 15. AI Output Sanitization: Unknown categories and departments strictly fall back
+    const { sanitizeAiOutput } = require('./server/ai');
+    const sanitized = sanitizeAiOutput({
+      category: 'Nuclear Radiation Hazard',
+      priority: 'Extreme Danger',
+      department: 'Space Force',
+      reason: 'Hallucinated reason.',
+    }, 'Test original description');
+    if (sanitized.category !== 'Unclassified' || sanitized.priority !== 'Needs review' || sanitized.department !== 'Municipal Services') {
+      throw new Error(`AI sanitizer did not normalize invalid values: ${JSON.stringify(sanitized)}`);
+    }
+    console.log(`✓ 15. AI Robustness: Invalid category, priority, and department normalized to allowlist defaults`);
+
+    // 16. Admin Status Update and Public Workflow Verification
+    const updateRes = await fetch(`${base}/api/admin/complaints/${photoComplaint.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        status: 'In Progress',
+        admin_note: 'Assigned to field crew for inspection.',
+      }),
+    });
+    if (updateRes.status !== 200) {
+      throw new Error(`Status update failed with status ${updateRes.status}`);
+    }
+    const rTrackUpdated = await fetch(`${base}/api/track/${photoTrackingCode}`);
+    const jTrackUpdated = await rTrackUpdated.json();
+    if (jTrackUpdated.data.status !== 'In Progress') {
+      throw new Error(`Citizen track did not reflect updated status. Got: ${jTrackUpdated.data.status}`);
+    }
+    console.log(`✓ 16. Workflow: Admin status change to "In Progress" verified on citizen tracking`);
+
+    console.log('\n>>> ALL 16 REGRESSION & SECURITY AUDIT TESTS PASSED SUCCESSFULLY! <<<\n');
   } catch (err) {
     console.error('❌ Test failed:', err);
     process.exitCode = 1;

@@ -206,13 +206,15 @@ async function createComplaint(complaintData) {
   const trackingCode = generateTrackingCode();
   const normalizedArea = normalizeArea(complaintData.location_area);
 
-  let lat = complaintData.latitude;
-  let lng = complaintData.longitude;
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-    const coords = resolveCoordinates(complaintData.location_area, trackingCode);
-    lat = coords.latitude;
-    lng = coords.longitude;
-  }
+  // Strictly preserve null for missing GPS coordinates; never fabricate fake geographic points
+  const rawLat = complaintData.latitude;
+  const rawLng = complaintData.longitude;
+  const validLat = rawLat !== undefined && rawLat !== null && rawLat !== '' && !isNaN(Number(rawLat))
+    ? Number(rawLat)
+    : null;
+  const validLng = rawLng !== undefined && rawLng !== null && rawLng !== '' && !isNaN(Number(rawLng))
+    ? Number(rawLng)
+    : null;
 
   const record = {
     tracking_code: trackingCode,
@@ -222,8 +224,8 @@ async function createComplaint(complaintData) {
     landmark: complaintData.landmark || null,
     reporter_name: complaintData.reporter_name || null,
     photo_path: complaintData.photo_path || null,
-    latitude: Number(lat),
-    longitude: Number(lng),
+    latitude: validLat,
+    longitude: validLng,
     category: complaintData.category || 'Unclassified',
     priority: complaintData.priority || 'Needs review',
     suggested_department: complaintData.suggested_department || 'Municipal Services',
@@ -290,7 +292,7 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
   if (isConfigured) {
     let query = supabase
       .from('complaints')
-      .select('tracking_code, category, location_area, landmark, english_summary, priority, status, created_at, latitude, longitude', {
+      .select('tracking_code, category, location_area, english_summary, priority, status, created_at, latitude, longitude', {
         count: 'exact',
       })
       .order('created_at', { ascending: false });
@@ -344,7 +346,6 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
       tracking_code: c.tracking_code,
       category: c.category,
       location_area: c.location_area,
-      landmark: c.landmark || null,
       english_summary: c.english_summary,
       priority: c.priority,
       status: c.status,
@@ -518,6 +519,8 @@ async function getRealtimeMapPoints() {
     const { data, error } = await supabase
       .from('complaints')
       .select('id, tracking_code, description, location_area, landmark, category, priority, status, created_at, english_summary, latitude, longitude')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
       .order('created_at', { ascending: false })
       .limit(200);
     if (!error && data) {
@@ -527,15 +530,10 @@ async function getRealtimeMapPoints() {
     list = memoryStore.complaints;
   }
 
-  return list.map((c) => {
-    let lat = c.latitude;
-    let lng = c.longitude;
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      const resolved = resolveCoordinates(c.location_area, c.tracking_code);
-      lat = resolved.latitude;
-      lng = resolved.longitude;
-    }
-    return {
+  // Only return records with genuine, verified coordinates (never invent fake points)
+  return list
+    .filter((c) => c.latitude !== null && c.longitude !== null && !isNaN(Number(c.latitude)) && !isNaN(Number(c.longitude)))
+    .map((c) => ({
       id: c.id,
       tracking_code: c.tracking_code,
       location_area: c.location_area,
@@ -545,10 +543,9 @@ async function getRealtimeMapPoints() {
       status: c.status,
       created_at: c.created_at,
       english_summary: c.english_summary || c.description,
-      latitude: Number(lat),
-      longitude: Number(lng),
-    };
-  });
+      latitude: Number(c.latitude),
+      longitude: Number(c.longitude),
+    }));
 }
 
 async function getAdminSummary() {
@@ -681,11 +678,45 @@ async function getLocationAnalysis() {
   };
 }
 
+function validateImageMagicBytes(buffer) {
+  if (!buffer || buffer.length < 12) return false;
+
+  // JPEG: FF D8 FF
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+    return 'image/jpeg';
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47 &&
+    buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A
+  ) {
+    return 'image/png';
+  }
+
+  // WebP: RIFF (bytes 0-3) and WEBP (bytes 8-11)
+  if (
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+
+  return false;
+}
+
 async function uploadPhoto(buffer, filename, mimeType) {
   if (!buffer || !buffer.length) {
     return null;
   }
 
+  // Validate real magic bytes to prevent file-type spoofing
+  const detectedMime = validateImageMagicBytes(buffer);
+  if (!detectedMime) {
+    throw new Error('Invalid file format. Uploaded file does not contain valid JPG, PNG, or WebP image data.');
+  }
+
+  // Strict path traversal and filename sanitization
   const cleanName = path.basename(filename || 'photo.jpg').replace(/[^a-zA-Z0-9._-]/g, '');
   const safeFilename = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${cleanName || 'image.jpg'}`;
 
@@ -696,7 +727,7 @@ async function uploadPhoto(buffer, filename, mimeType) {
       const { error } = await supabase.storage
         .from('complaint-photos')
         .upload(safePath, buffer, {
-          contentType: mimeType || 'image/jpeg',
+          contentType: detectedMime,
           upsert: false,
         });
 

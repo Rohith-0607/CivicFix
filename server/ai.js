@@ -138,7 +138,7 @@ function sanitizeAiOutput(raw, originalDescription) {
 
   const category = ALLOWED_CATEGORIES.includes(raw.category) ? raw.category : 'Unclassified';
   const priority = ALLOWED_PRIORITIES.includes(raw.priority) ? raw.priority : 'Needs review';
-  const department = typeof raw.department === 'string' && raw.department.trim()
+  const department = typeof raw.department === 'string' && ALLOWED_DEPARTMENTS.includes(raw.department.trim())
     ? raw.department.trim()
     : 'Municipal Services';
 
@@ -257,6 +257,8 @@ Return pure JSON without markdown code fences.`;
 
 module.exports = {
   analyzeComplaint,
+  sanitizeAiOutput,
+  heuristicFallback,
   ALLOWED_CATEGORIES,
   ALLOWED_PRIORITIES,
   ALLOWED_DEPARTMENTS,

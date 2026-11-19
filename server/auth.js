@@ -1,12 +1,18 @@
 // CivicFix AI — Admin Authentication Middleware
 // Verifies Supabase Auth JWT token and checks admin authorization allowlist.
 
+const crypto = require('crypto');
 const { supabase, isConfigured } = require('./supabase');
 
-// Demo token accepted only in development / demo mode (not in production)
-const DEMO_TOKEN = 'demo-admin-session-token-2026';
+// Strict environment separation: demo authentication is strictly disabled in production
 const isProduction = process.env.NODE_ENV === 'production';
-const isDemoAllowed = !isProduction || process.env.ALLOW_DEMO_LOGIN === 'true';
+const isDemoAllowed = !isProduction;
+
+// Dynamic cryptographically secure session token generated per server boot
+// Prevents static predictable token replay or hardcoded token exposure
+const DEMO_TOKEN = isDemoAllowed
+  ? `demo_${crypto.randomBytes(24).toString('hex')}`
+  : null;
 
 async function requireAdminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -20,8 +26,8 @@ async function requireAdminAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
-  // Demo admin token accepted in development / hackathon demo mode only
-  if (isDemoAllowed && token === DEMO_TOKEN) {
+  // Demo admin token accepted in development / hackathon demo mode only (never in production)
+  if (isDemoAllowed && DEMO_TOKEN && token === DEMO_TOKEN) {
     req.adminUser = {
       id: 'demo-admin-user-id',
       email: 'admin@civicfix.local',
@@ -42,11 +48,12 @@ async function requireAdminAuth(req, res, next) {
         });
       }
 
-      // Check allowlisted ADMIN_USER_ID if defined in .env
+      // Check allowlisted ADMIN_USER_ID or server-controlled app_metadata
       const adminUserId = process.env.ADMIN_USER_ID;
-      const isAdminRole = user.user_metadata?.role === 'admin' || user.app_metadata?.role === 'admin';
-      const isAllowedId = adminUserId ? user.id === adminUserId : true;
+      const isAdminRole = Boolean(user.app_metadata?.role === 'admin');
+      const isAllowedId = Boolean(adminUserId && user.id === adminUserId);
 
+      // Missing admin configuration denies access unless explicitly granted in app_metadata
       if (!isAllowedId && !isAdminRole) {
         return res.status(403).json({
           success: false,
@@ -74,4 +81,5 @@ async function requireAdminAuth(req, res, next) {
 module.exports = {
   requireAdminAuth,
   DEMO_TOKEN,
+  isDemoAllowed,
 };

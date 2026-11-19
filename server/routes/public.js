@@ -11,7 +11,7 @@ const {
   supabase,
 } = require('../supabase');
 const { analyzeComplaint, ALLOWED_CATEGORIES, ALLOWED_PRIORITIES } = require('../ai');
-const { DEMO_TOKEN } = require('../auth');
+const { DEMO_TOKEN, isDemoAllowed } = require('../auth');
 
 const router = express.Router();
 
@@ -118,9 +118,9 @@ router.post('/complaints', upload.single('photo'), async (req, res) => {
           req.file.mimetype
         );
       } catch (uploadErr) {
-        return res.status(500).json({
+        return res.status(400).json({
           success: false,
-          error: `Photo upload failed: ${uploadErr.message}`,
+          error: uploadErr.message || 'Photo upload validation failed.',
         });
       }
     }
@@ -250,12 +250,10 @@ router.post('/admin/login', async (req, res) => {
   const cleanEmail = String(email).toLowerCase().trim();
   const cleanPass = String(password).trim();
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDemoAllowed = !isProduction || process.env.ALLOW_DEMO_LOGIN === 'true';
-
-  // 1. Built-in Demo Administrator Login (configurable for local dev / evaluation, disabled in strict prod)
+  // 1. Built-in Demo Administrator Login (strictly disabled in production, active in local dev)
   if (
     isDemoAllowed &&
+    DEMO_TOKEN &&
     (cleanEmail === 'admin@civicfix.local' || cleanEmail === 'admin' || cleanEmail === 'admin@civicfix.com') &&
     cleanPass === 'admin123'
   ) {
@@ -287,11 +285,12 @@ router.post('/admin/login', async (req, res) => {
         });
       }
 
-      // Check admin authorization
+      // Check admin authorization: server-controlled app_metadata or allowlisted ADMIN_USER_ID
       const adminUserId = process.env.ADMIN_USER_ID;
-      const isAdminRole = data.user.user_metadata?.role === 'admin' || data.user.app_metadata?.role === 'admin';
-      const isAllowedId = adminUserId ? data.user.id === adminUserId : true;
+      const isAdminRole = Boolean(data.user.app_metadata?.role === 'admin');
+      const isAllowedId = Boolean(adminUserId && data.user.id === adminUserId);
 
+      // Missing admin configuration denies access unless explicitly granted in app_metadata
       if (!isAllowedId && !isAdminRole) {
         return res.status(403).json({
           success: false,
