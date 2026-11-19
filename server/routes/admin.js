@@ -24,6 +24,18 @@ router.use(requireAdminAuth);
 router.get('/summary', async (req, res) => {
   try {
     const summary = await getAdminSummary();
+
+    // Populate photo URLs for recent list items
+    if (summary && Array.isArray(summary.recent)) {
+      summary.recent = await Promise.all(
+        summary.recent.map(async (c) => ({
+          ...c,
+          photo_url: c.photo_path ? await getSignedPhotoUrl(c.photo_path, 300) : null,
+          has_photo: Boolean(c.photo_path),
+        }))
+      );
+    }
+
     return res.json({
       success: true,
       data: summary,
@@ -52,6 +64,17 @@ router.get('/complaints', async (req, res) => {
       status,
       search,
     });
+
+    // Populate photo URLs and has_photo flags for table rendering
+    if (data && Array.isArray(data.complaints)) {
+      data.complaints = await Promise.all(
+        data.complaints.map(async (c) => ({
+          ...c,
+          photo_url: c.photo_path ? await getSignedPhotoUrl(c.photo_path, 300) : null,
+          has_photo: Boolean(c.photo_path),
+        }))
+      );
+    }
 
     return res.json({
       success: true,
@@ -91,6 +114,7 @@ router.get('/complaints/:id', async (req, res) => {
       data: {
         ...complaint,
         photo_url: signedPhotoUrl,
+        has_photo: Boolean(complaint.photo_path),
       },
     });
   } catch (err) {

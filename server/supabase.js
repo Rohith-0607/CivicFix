@@ -1,5 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  try {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  } catch (err) {
+    console.error('Failed to create uploads directory:', err);
+  }
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -359,15 +370,17 @@ async function getComplaintByTrackingCode(trackingCode) {
   if (isConfigured) {
     const { data, error } = await supabase
       .from('complaints')
-      .select('tracking_code, category, location_area, priority, suggested_department, status, created_at, updated_at')
+      .select('tracking_code, category, location_area, priority, suggested_department, status, created_at, updated_at, photo_path')
       .eq('tracking_code', code)
       .single();
 
     if (error || !data) return null;
-    return data;
+    const photo_url = data.photo_path ? await getSignedPhotoUrl(data.photo_path, 300) : null;
+    return { ...data, photo_url, has_photo: Boolean(data.photo_path) };
   } else {
     const item = memoryStore.complaints.find((c) => c.tracking_code.toUpperCase() === code);
     if (!item) return null;
+    const photo_url = item.photo_path ? await getSignedPhotoUrl(item.photo_path, 300) : null;
     return {
       tracking_code: item.tracking_code,
       category: item.category,
@@ -377,6 +390,9 @@ async function getComplaintByTrackingCode(trackingCode) {
       status: item.status,
       created_at: item.created_at,
       updated_at: item.updated_at,
+      photo_path: item.photo_path,
+      photo_url,
+      has_photo: Boolean(item.photo_path),
     };
   }
 }
@@ -542,7 +558,7 @@ async function getAdminSummary() {
   if (isConfigured) {
     const { data: recents } = await supabase
       .from('complaints')
-      .select('id, tracking_code, english_summary, location_area, category, priority, status, created_at')
+      .select('id, tracking_code, english_summary, location_area, category, priority, status, created_at, photo_path')
       .order('created_at', { ascending: false })
       .limit(8);
     recent = recents || [];
@@ -571,6 +587,7 @@ async function getAdminSummary() {
       category: c.category,
       priority: c.priority,
       status: c.status,
+      photo_path: c.photo_path,
       created_at: c.created_at,
     }));
 
@@ -662,46 +679,110 @@ async function getLocationAnalysis() {
 }
 
 async function uploadPhoto(buffer, filename, mimeType) {
-  if (!isConfigured) {
-    return `demo-photos/${filename}`;
-  }
-
-  const safePath = `evidence/${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${filename.replace(/[^a-zA-Z0-9._-]/g, '')}`;
-
-  const { error } = await supabase.storage
-    .from('complaint-photos')
-    .upload(safePath, buffer, {
-      contentType: mimeType,
-      upsert: false,
-    });
-
-  if (error) {
-    throw new Error(`Photo upload failed: ${error.message}`);
-  }
-
-  return safePath;
-}
-
-async function getSignedPhotoUrl(photoPath, expiresInSeconds = 300) {
-  if (!photoPath) return null;
-  if (!isConfigured) {
+  if (!buffer || !buffer.length) {
     return null;
   }
 
-  const { data, error } = await supabase.storage
-    .from('complaint-photos')
-    .createSignedUrl(photoPath, expiresInSeconds);
+  const cleanName = path.basename(filename || 'photo.jpg').replace(/[^a-zA-Z0-9._-]/g, '');
+  const safeFilename = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${cleanName || 'image.jpg'}`;
 
-  if (error || !data) return null;
-  return data.signedUrl;
+  // If Supabase is configured, try Supabase cloud storage first
+  if (isConfigured) {
+    try {
+      const safePath = `evidence/${safeFilename}`;
+      const { error } = await supabase.storage
+        .from('complaint-photos')
+        .upload(safePath, buffer, {
+          contentType: mimeType || 'image/jpeg',
+          upsert: false,
+        });
+
+      if (!error) {
+        return safePath;
+      }
+      console.warn('[Storage] Supabase storage upload failed, saving locally:', error.message);
+    } catch (sbErr) {
+      console.warn('[Storage] Supabase storage exception, saving locally:', sbErr.message);
+    }
+  }
+
+  // Local storage (guarantees uploaded photo is saved to disk and visible in admin portal)
+  try {
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
+    const localFilePath = path.join(UPLOADS_DIR, safeFilename);
+    fs.writeFileSync(localFilePath, buffer);
+    return `uploads/${safeFilename}`;
+  } catch (err) {
+    console.error('[Storage] Local photo save error:', err);
+    throw new Error(`Failed to store uploaded photo: ${err.message}`);
+  }
+}
+
+async function getSignedPhotoUrl(photoPath, expiresInSeconds = 300) {
+  if (!photoPath || typeof photoPath !== 'string') return null;
+
+  const trimmed = photoPath.trim();
+  if (!trimmed) return null;
+
+  // 1. Direct web URL or data URI
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+
+  const normalized = trimmed.replace(/\\/g, '/');
+
+  // 2. Direct local uploads path
+  if (normalized.startsWith('uploads/') || normalized.startsWith('/uploads/')) {
+    return `/${normalized.replace(/^\/+/, '')}`;
+  }
+
+  // 3. Supabase storage signed URL (if configured)
+  if (isConfigured) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('complaint-photos')
+        .createSignedUrl(trimmed, expiresInSeconds);
+
+      if (!error && data?.signedUrl) {
+        return data.signedUrl;
+      }
+    } catch (err) {
+      console.warn('[Storage] Error generating Supabase signed URL:', err.message);
+    }
+  }
+
+  // 4. Check if file exists in local public/uploads directory by basename
+  const baseName = path.basename(normalized);
+  const localCheck = path.join(UPLOADS_DIR, baseName);
+  if (fs.existsSync(localCheck)) {
+    return `/uploads/${baseName}`;
+  }
+
+  // 5. Fallback path for client browser
+  return `/${normalized.replace(/^\/+/, '')}`;
 }
 
 async function deletePhoto(photoPath) {
-  if (!photoPath || !isConfigured) return;
+  if (!photoPath) return;
+
+  if (isConfigured) {
+    try {
+      await supabase.storage.from('complaint-photos').remove([photoPath]);
+    } catch (err) {
+      console.error('[Storage] Supabase delete photo error:', err);
+    }
+  }
+
   try {
-    await supabase.storage.from('complaint-photos').remove([photoPath]);
+    const baseName = path.basename(photoPath);
+    const localFilePath = path.join(UPLOADS_DIR, baseName);
+    if (fs.existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    }
   } catch (err) {
-    console.error('Failed to clean up orphaned photo:', err);
+    console.error('[Storage] Local delete photo error:', err);
   }
 }
 

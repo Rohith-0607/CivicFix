@@ -508,9 +508,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? 'badge-inprogress'
                     : 'badge-pending';
 
+                const hasPhoto = Boolean(item.photo_url || item.photo_path || item.has_photo);
+                const photoIcon = hasPhoto
+                  ? `<span title="Citizen attached photo evidence" style="background: #E0F2FE; color: #0284C7; font-size: 10px; font-weight: 600; padding: 2px 5px; border-radius: 4px; border: 1px solid #BAE6FD; margin-left: 6px; display: inline-flex; align-items: center; gap: 2px;">📷</span>`
+                  : '';
+
                 return `
                   <tr style="cursor: pointer;" class="recent-row" data-id="${escapeHtml(item.id)}">
-                    <td><code class="mono" style="font-weight: 700; color: var(--color-green);">${escapeHtml(item.tracking_code)}</code></td>
+                    <td>
+                      <div style="display: inline-flex; align-items: center;">
+                        <code class="mono" style="font-weight: 700; color: var(--color-green);">${escapeHtml(item.tracking_code)}</code>
+                        ${photoIcon}
+                      </div>
+                    </td>
                     <td><span style="font-weight: 600; color: var(--color-text);">${escapeHtml(item.english_summary || item.description || 'Civic issue')}</span></td>
                     <td>
                       <span style="display: inline-flex; align-items: center; gap: 4px;">
@@ -676,9 +686,19 @@ document.addEventListener('DOMContentLoaded', () => {
             ? 'badge-medium'
             : 'badge-low';
 
+        const hasPhoto = Boolean(item.photo_url || item.photo_path || item.has_photo);
+        const photoBadge = hasPhoto
+          ? `<span class="badge" title="Citizen uploaded photo evidence" style="background-color: #E0F2FE; color: #0284C7; border: 1px solid #BAE6FD; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;">📷 Photo</span>`
+          : '';
+
         return `
           <tr>
-            <td><code class="mono" style="font-weight: 700; color: var(--color-green);">${escapeHtml(item.tracking_code)}</code></td>
+            <td>
+              <div style="display: inline-flex; align-items: center; flex-wrap: wrap;">
+                <code class="mono" style="font-weight: 700; color: var(--color-green);">${escapeHtml(item.tracking_code)}</code>
+                ${photoBadge}
+              </div>
+            </td>
             <td><strong>${escapeHtml(item.location_area)}</strong></td>
             <td style="max-width: 240px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${escapeHtml(item.english_summary || item.description)}</td>
             <td>${escapeHtml(item.category)}</td>
@@ -783,12 +803,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalDate) modalDate.textContent = formatDate(d.created_at);
         if (modalDescription) modalDescription.textContent = d.description;
 
+        // Citizen Photo Evidence Resolver
         if (modalPhotoSection && modalPhotoImg) {
-          if (d.photo_url) {
-            modalPhotoImg.src = d.photo_url;
-            if (modalPhotoLink) modalPhotoLink.href = d.photo_url;
+          const resolvedPhotoUrl = d.photo_url || (d.photo_path ? (d.photo_path.startsWith('/') ? d.photo_path : `/${d.photo_path}`) : null);
+
+          if (resolvedPhotoUrl) {
+            modalPhotoImg.src = resolvedPhotoUrl;
+            modalPhotoImg.alt = `Citizen photo evidence for ${d.tracking_code}`;
+            if (modalPhotoLink) modalPhotoLink.href = resolvedPhotoUrl;
             modalPhotoSection.style.display = 'block';
           } else {
+            modalPhotoImg.src = '';
             modalPhotoSection.style.display = 'none';
           }
         }

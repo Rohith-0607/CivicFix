@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -62,8 +63,14 @@ app.get('/api/system-status', (req, res) => {
   });
 });
 
-// Serve static assets from public/
+// Serve static assets from public/ and uploads/
 const publicDir = path.join(__dirname, '..', 'public');
+const uploadsDir = path.join(publicDir, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(publicDir));
 
 // Clean URL Page Routes

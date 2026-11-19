@@ -41,6 +41,20 @@ const server = app.listen(0, '127.0.0.1', async () => {
     const trackingCode = j4.data.tracking_code;
     console.log(`✓ 4. Submit complaint: success=${j4.success}, tracking_code="${trackingCode}"`);
 
+    // 4b. Submit complaint with attached photo evidence
+    const photoForm = new FormData();
+    photoForm.append('description', 'Severe pothole crater on main road with photographic proof attached.');
+    photoForm.append('location_area', 'Kukatpally');
+    photoForm.append('landmark', 'Near Metro Pillar 120');
+    photoForm.append('category', 'Road Damage');
+    photoForm.append('priority', 'High');
+    const dummyJpg = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x01, 0x00, 0x60, 0x00, 0x60, 0x00, 0x00, 0xFF, 0xD9]);
+    photoForm.append('photo', new Blob([dummyJpg], { type: 'image/jpeg' }), 'pothole_evidence.jpg');
+    const r4b = await fetch(`${base}/api/complaints`, { method: 'POST', body: photoForm });
+    const j4b = await r4b.json();
+    const photoTrackingCode = j4b.data.tracking_code;
+    console.log(`✓ 4b. Submit complaint with photo: success=${j4b.success}, tracking_code="${photoTrackingCode}"`);
+
     // 5. Track complaint
     const r5 = await fetch(`${base}/api/track/${trackingCode}`);
     const j5 = await r5.json();
@@ -56,6 +70,30 @@ const server = app.listen(0, '127.0.0.1', async () => {
     console.log(`✓ 6. Admin authentication: success=${j6.success}, tokenReceived=${Boolean(j6.data?.token)}`);
 
     const adminToken = j6.data.token;
+
+    // 6b. Verify uploaded photo in Admin complaints list and detail modal
+    const rAdminList = await fetch(`${base}/api/admin/complaints?search=${photoTrackingCode}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const jAdminList = await rAdminList.json();
+    const photoComplaint = jAdminList.data.complaints.find((c) => c.tracking_code === photoTrackingCode);
+    if (!photoComplaint) throw new Error('Complaint with photo not found in admin table');
+    if (!photoComplaint.has_photo || !photoComplaint.photo_url) {
+      throw new Error(`Expected complaint to have photo, got has_photo=${photoComplaint.has_photo}, photo_url=${photoComplaint.photo_url}`);
+    }
+
+    const rAdminDetail = await fetch(`${base}/api/admin/complaints/${photoComplaint.id}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const jAdminDetail = await rAdminDetail.json();
+    if (!jAdminDetail.data.photo_url) {
+      throw new Error('Complaint detail missing photo_url');
+    }
+    const photoFetch = await fetch(`${base}${jAdminDetail.data.photo_url}`);
+    if (photoFetch.status !== 200) {
+      throw new Error(`Photo URL failed to load: HTTP status ${photoFetch.status}`);
+    }
+    console.log(`✓ 6b. Photo evidence visible in admin: photo_url="${jAdminDetail.data.photo_url}", HTTP status=${photoFetch.status} OK`);
 
     // 7. Admin summary
     const r7 = await fetch(`${base}/api/admin/summary`, {

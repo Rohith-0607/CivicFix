@@ -19,3 +19,5 @@ Thumbs.db
 
 # Upload temp files
 uploads/
+public/uploads/*
+!public/uploads/.gitkeep
