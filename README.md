@@ -1,171 +1,214 @@
-# CivicFix AI — Community Issue Reporting Portal
+# CivicFix AI — AI-Powered Civic Issue Reporting & Triage Platform
 
-> **Student Prototype Notice:** CivicFix AI is an independent prototype built for the IDEA//FORGE solo hackathon. Reports submitted here are stored in a prototype database for demonstration and triage review; they are **not** routed to real municipal or government authorities.
-
-CivicFix AI allows citizens to report local civic issues (such as road damage, water leaks, uncollected garbage, broken streetlights, and drainage blocks) in **English or Telugu (తెలుగు)**. A Google Gemini-backed assistant analyzes the report to suggest a classification category, urgency priority, municipal department, and an English summary for human administrator verification.
+> **Developer & Hackathon Note:** Hi, I built **CivicFix AI** as an independent prototype for the IDEA//FORGE Hackathon. This project demonstrates how modern AI, multilingual comprehension, and spatial intelligence can transform community civic problem reporting. All reports submitted in this demo are stored in a prototype database for demonstration, testing, and triage review; they are **not** routed to real municipal or government authorities.
 
 ---
 
-## 1. Key Features
+## 1. About the Project: Why I Built CivicFix AI
 
-- **Multilingual Interface & Input:** Full English, Telugu (`తెలుగు`), and Hindi (`हिन्दी`) dropdown with persistent language choice; accepts native Telugu and Hindi Unicode descriptions and accurately summarizes them in English.
-- **AI Classification Engine (Gemini):** Server-side text analysis suggests category, priority, department, and summary with multilingual fallback if the AI service is unavailable.
-- **Privacy-First Public Tracking:** Citizens receive a non-sequential tracking ID (e.g., `CF-7A2C9D4F`). The public board shows sanitized summaries and areas, keeping citizen names, landmarks, and photos private.
-- **Photo Evidence via Private Storage:** Optional image upload (JPG, PNG, WebP up to 5 MB) stored in a private bucket with time-limited signed URLs generated strictly for admin review.
-- **Protected Admin Management:** Overview dashboard, interactive real-time Leaflet GPS map, full complaint inspector, status updating (`Pending` $\rightarrow$ `In Progress` $\rightarrow$ `Resolved`), and normalized location analysis. Includes one-click demo login for effortless evaluator access.
-- **Strict, Accessible Design System:** Responsive mobile-first layouts, consistent Lucide SVG icons, charcoal, off-white, teal, and lime palette with accessible contrast and zero visual bloat.
+In many urban and semi-urban communities—particularly in bilingual cities like Hyderabad—citizens encounter everyday civic infrastructure breakdowns: deep potholes, overflowing garbage bins, water pipeline ruptures, dark streets from broken lamps, and clogged stormwater drains. 
+
+However, reporting these issues often breaks down due to three major friction points:
+1. **Language & Literacy Barriers:** Most municipal web forms require formal English, making it hard for citizens who communicate naturally in Telugu (తెలుగు) or Hindi (हिन्दी) to describe problems accurately.
+2. **Administrative Triage Overload:** Municipal back-offices receive thousands of unstructured complaints daily without prioritization, department tagging, or location clustering, leading to delayed action.
+3. **Lack of Transparent Tracking & Citizen Privacy:** Citizens often don't receive verifiable tracking IDs, or conversely, public grievance boards leak citizen names, exact phone numbers, and landmarks.
+
+**I designed and built CivicFix AI to solve all three problems:**
+- Citizens can report issues by typing or speaking in their native language (English, Telugu, or Hindi).
+- A Google Gemini-backed backend analyzes the unstructured description, standardizes an English summary, estimates urgency priority, and identifies the correct municipal department.
+- Citizens receive an anonymous tracking code (`CF-XXXXXXXX`), while administrators get a full management dashboard with live Leaflet maps, photo evidence, and status controls.
 
 ---
 
-## 2. Project Architecture & File Directory
+## 2. Key Features I Built
+
+### 🌐 1. Multilingual Citizen Interface (English, తెలుగు, हिन्दी)
+- Interactive language selector supporting English, Telugu, and Hindi with persistent user preference.
+- Supports native Telugu and Hindi Unicode descriptions (e.g., *"మా కాలనీలో రోడ్డు మీద పెద్ద గుంత ఏర్పడింది"*).
+- Zero-shot multilingual translation and summarization into standardized English for municipal engineers.
+
+### 🧠 2. AI Triage Engine (Google Gemini with Heuristic Safeguards)
+- Classifies complaints into canonical categories: `Road Damage`, `Garbage`, `Water Leakage`, `Streetlights`, `Drainage`, `Other`, or `Unclassified`.
+- Assigns hazard-based priorities (`High`, `Medium`, `Low`, or `Needs review`).
+- Recommends the responsible municipal department (e.g., `Roads & Infrastructure`, `Sanitation`, `Water Supply`, `Street Lighting`).
+- **Fail-Safe Architecture:** If the Gemini API key is not configured, rate-limited, or offline, my built-in rule-based heuristic classifier automatically triages the report so the user is never blocked.
+
+### 📍 3. Live Database-Driven Map & Locality Intelligence
+- Integrated Leaflet map on both the citizen board and admin dashboard that dynamically plots verified GPS coordinates.
+- For complaints without GPS coordinates, my system aggregates reports by locality (`Kukatpally`, `Miyapur`, `Hitech City`, etc.) into dynamic cluster summaries.
+- No invented coordinates or fake pins: map pins reflect real database records.
+
+### 📷 4. Photo Evidence Storage & Admin Review
+- Citizens can upload optional photographic proof (JPG, PNG, WebP up to 5 MB).
+- In production, photos are stored in Supabase private storage and served through time-limited signed URLs.
+- In local demo mode, my backend automatically saves uploads to `public/uploads/` with unique cryptographically random file hashes.
+- Admins see a `📷 Photo` badge directly on the complaints table and can inspect the full-resolution evidence in the review modal.
+
+### 🔒 5. Hardened Security & Privacy
+- **Zero Frontend Secrets:** No API keys, database credentials, or service roles are exposed to the client.
+- **Server-Side Authentication:** Protected admin routes (`/api/admin/*`) require server-verified Bearer tokens.
+- **Privacy Protection:** Public issue boards and tracking pages redact citizen names and private landmarks.
+
+---
+
+## 3. Technology Stack & Architecture
+
+I designed CivicFix AI as a clean, performant, and dependency-disciplined full-stack web application:
+
+- **Backend Runtime:** Node.js (v18+) with Express.js
+- **Database & Storage:** Supabase (PostgreSQL with Row Level Security, Storage Buckets, and Auth) + Local in-memory fallback store
+- **AI Processing:** Google Gemini API (`@google/genai` / `gemini-1.5` / `gemini-2.5`) with strict schema prompts and server-side whitelist validation
+- **Mapping & Geospatial:** Leaflet.js with OpenStreetMap tiles
+- **Frontend:** Vanilla JavaScript (ES6+), HTML5, CSS3 Custom Properties (zero bulky heavyweight frameworks)
+- **Design System:** Custom Civic Tech Palette (`#102B30` Dark Teal, `#167D70` Green, `#C8E66B` Lime Accent, `#F7F8F6` Off-White) and Lucide SVG icons
+
+### Project File Directory
 
 ```text
 civicfix-ai/
-├── package.json               # Dependencies and scripts (Express, Supabase, Multer, etc.)
-├── .env.example               # Template for environment configuration
-├── .gitignore                 # Ignores node_modules, .env, logs
-├── README.md                  # Comprehensive setup, test, and presentation guide
+├── package.json               # Dependencies and scripts (Express, Supabase, Multer)
+├── .env.example               # Template for cloud environment configuration
+├── .gitignore                 # Ignores node_modules, .env, public/uploads
+├── README.md                  # Project overview, architecture, and evaluation guide
+├── test.js                    # Automated 10-point acceptance verification test suite
 ├── database/
-│   └── schema.sql             # Supabase PostgreSQL table, indexes, trigger, and RLS policies
+│   └── schema.sql             # Supabase PostgreSQL table, RLS policies, indexes
 ├── server/
-│   ├── index.js               # Express application entry point, rate limiting, and page routing
-│   ├── supabase.js            # Supabase database, storage client, and in-memory demo fallback
-│   ├── ai.js                  # Gemini AI API integration, prompt safeguards, and heuristic fallback
-│   ├── auth.js                # Admin token verification and allowlist authorization middleware
+│   ├── index.js               # Express application entry, security headers, static routes
+│   ├── supabase.js            # Database client, local storage fallback, map coordinates
+│   ├── ai.js                  # Gemini AI classifier, prompt guardrails, heuristic engine
+│   ├── auth.js                # Server-side admin authentication & session validation
 │   └── routes/
-│       ├── public.js          # Public endpoints: /api/analyze, /api/complaints, /api/issues, /api/track
-│       └── admin.js           # Protected admin endpoints: /api/admin/summary, complaints, locations
+│       ├── public.js          # Public routes: /api/analyze, /api/complaints, /api/issues, /api/track
+│       └── admin.js           # Admin routes: /api/admin/summary, complaints, locations
 └── public/
-    ├── index.html             # Citizen landing page with 3-step guide & common issues
-    ├── report.html            # Civic issue submission form with AI preview & photo upload
-    ├── issues.html            # Public issues board with live counters, search, and filters
-    ├── track.html             # Status tracking lookup by tracking code
-    ├── admin-login.html       # Supabase Auth email/password admin login
-    ├── admin.html             # Admin overview dashboard with telemetry and top areas
-    ├── admin-complaints.html  # Complaints review table and modal edit panel
-    ├── admin-locations.html   # Location cluster analysis with normalized area grouping
+    ├── index.html             # Citizen home page with 3-step reporting workflow
+    ├── report.html            # Civic issue submission form with photo preview & AI test
+    ├── issues.html            # Public issues board with live Leaflet map & filters
+    ├── track.html             # Complaint tracking lookup by code
+    ├── admin-login.html       # Secure administrator login page
+    ├── admin.html             # Full admin dashboard: complaints table, map, and telemetry
     ├── css/
-    │   └── style.css          # Mandatory design system stylesheet (no gradients/blur)
+    │   └── style.css          # Design system stylesheet
     └── js/
-        ├── translations.js    # English and Telugu dictionary
-        ├── common.js          # Language switcher, nav active states, and system health check
-        ├── report.js          # Form validation, photo preview, AI trigger, and submit handler
-        ├── issues.js          # Public board data fetching, filtering, and pagination
-        ├── track.js           # Tracking code lookup handler
-        └── admin.js           # Admin auth, dashboard metrics, modal updates, and charts
+        ├── translations.js    # English, Telugu, and Hindi dictionary definitions
+        ├── common.js          # Language switcher dropdown, navigation, and health checks
+        ├── report.js          # Form validation, photo upload, AI preview trigger
+        ├── issues.js          # Public issues table, real-time map plotting & locality grid
+        ├── track.js           # Status lookup and photo evidence rendering
+        └── admin.js           # Admin authentication, Leaflet real-time map, review modal
 ```
 
 ---
 
-## 3. Quick Start & Setup
+## 4. How to Run My Project Locally
 
 ### Prerequisites
-- **Node.js**: v18+ (tested on Node v20/v24 LTS)
-- **Supabase Account**: (Free tier) For PostgreSQL, Auth, and Storage
-- **Google Gemini API Key**: For AI report classification
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
 
 ### Step 1: Install Dependencies
-Run in your terminal:
 ```bash
 npm install
 ```
-*(On Windows PowerShell, use `npm.cmd install` if execution policy is restricted).*
 
-### Step 2: Database & Storage Setup (Supabase)
-1. In your Supabase dashboard, open the **SQL Editor**.
-2. Copy and execute the contents of `database/schema.sql`. This creates the `complaints` table, indexes, triggers, and the `complaint-photos` storage bucket.
-3. In **Authentication > Users**, create an administrator user with an email and password (e.g. `admin@civicfix.local`). Note down the user's `UUID`.
-
-### Step 3: Configure Environment Variables
-Copy `.env.example` to `.env`:
+### Step 2: (Optional) Configure Cloud Keys
+If you want to connect a live Supabase database and live Gemini API key, copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Update the values:
+And populate your keys:
 ```env
 PORT=3000
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-secret-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 SUPABASE_ANON_KEY=your-supabase-anon-key
 GEMINI_API_KEY=your-gemini-api-key
 ADMIN_USER_ID=your-admin-user-uuid
 ```
 
-> **Offline Demo Mode:** If you do not configure `.env`, CivicFix AI automatically runs in **Offline Demo Mode** with built-in in-memory sample records! You can log in to admin immediately using:
-> - **One-Click Button:** Click **"One-Click Demo Admin Login"** on `/admin/login`
-> - **Email:** `admin@civicfix.local`
-> - **Password:** `admin123`
+> **Zero-Config Demo Mode:** You do **not** need a Supabase or Gemini account to test this project! If `.env` is not set, my application automatically boots in **Offline In-Memory Demo Mode** with pre-seeded sample data, local file upload handling, and keyword-based heuristic AI fallback.
 
-### Step 4: Run the Application
+### Step 3: Run the Server
 ```bash
-npm run dev
-# or
 npm start
+# or for development mode:
+node server/index.js
 ```
-Open your browser to: `http://localhost:3000`
+Open your browser to: **`http://localhost:3000`**
+
+### Step 4: Run the Automated Verification Tests
+I built an automated end-to-end verification test suite in `test.js` covering 10 critical acceptance criteria:
+```bash
+node test.js
+```
+All 10 tests verify system status, public issue feeds, Telugu AI triage, complaint creation with photo upload, status tracking, admin authentication, admin complaint inspection, and route availability.
 
 ---
 
-## 4. End-to-End Hackathon Demo Script (Judge Walkthrough)
+## 5. Walkthrough: How to Evaluate My Project (Hackathon Demo Script)
 
-Follow this 5-minute flow to present CivicFix AI to evaluators or hackathon judges:
+Here is the exact 5-minute flow I recommend to explore and test what I built:
 
-1. **Citizen Landing (`/`):**
-   - Show the clean Indian civic portal aesthetic and point out the transparent student disclaimer banner.
-   - Click the **తెలుగు** button in the header; demonstrate how all UI labels instantly transition into Telugu.
+### 1. Citizen Landing Page (`/`)
+- Visit `http://localhost:3000/`.
+- Notice the clean civic design, transparent student disclaimer banner, and three-step guide.
+- Click the language selector in the top navbar and switch between **English**, **తెలుగు (Telugu)**, and **हिन्दी (Hindi)** to see the interface update dynamically.
 
-2. **Filing a Report in Telugu (`/report`):**
-   - Click **Report Issue**.
-   - Enter a Telugu description:
-     `మా వీధిలో పెద్ద గుంత ఏర్పడింది, వర్షంలో ద్విచక్ర వాహనాలు జారి ప్రమాదాలు జరుగుతున్నాయి.`
-   - Enter Location: `Kukatpally`
-   - Click **Analyze with AI (AIతో విశ్లేషించండి)**:
-     - Show the AI suggestion card populate with Category: `Road Damage`, Priority: `High`, Suggested Department: `Road Maintenance`, and an accurate English Summary: *"Large pothole on user street creating skid hazard for two-wheelers in rain."*
-     - Emphasize to the judges: *AI predictions are visibly labeled as needing human review and are completely editable by the citizen before submission.*
-   - Click **Submit Complaint**.
-   - Copy the newly generated tracking ID (e.g., `CF-8A2F1B4E`).
+### 2. Reporting an Issue with AI Triage (`/report`)
+- Click **Report Issue**.
+- Enter a Telugu description:
+  > *"మా వీధిలో పెద్ద గుంత ఏర్పడింది, వర్షంలో ద్విచక్ర వాహనాలు జారి ప్రమాదాలు జరుగుతున్నాయి."*
+- Enter Location: `Kukatpally`
+- (Optional) Attach a photo of the problem.
+- Click **Analyze with AI (AIతో విశ్లేషించండి)**:
+  - Watch the Gemini triage assistant classify it: Category: `Road Damage`, Priority: `High`, Suggested Department: `Roads & Infrastructure`, with an accurate English summary.
+  - Notice that all AI predictions remain fully editable by the citizen before submission.
+- Click **Submit Complaint** and copy your generated tracking code (e.g. `CF-XXXXXXXX`).
 
-3. **Public Issues Board (`/issues`):**
-   - Navigate to the Public Issues board.
-   - Show that the new report appears in real-time with status `Pending`.
-   - Point out that private reporter names and landmarks are omitted to protect citizen privacy.
-   - Test category and locality filters.
+### 3. Public Issues Board & Real-Time Map (`/issues`)
+- Navigate to the **Issues** tab.
+- Your submitted complaint appears immediately at the top with status `Pending`.
+- Click **Map View** to see verified reports plotted on the interactive Leaflet map and summarized in the locality cluster grid.
+- Test the Category and Status filters to see list and map updates in real time.
 
-4. **Tracking (`/track`):**
-   - Paste the tracking code into the track search input.
-   - Show the status card with category, area, submission time, and assigned department.
+### 4. Citizen Complaint Tracking (`/track`)
+- Open the **Track Complaint** page.
+- Enter your tracking code.
+- View the complaint record showing category, location, submitted timestamp, assigned department, and uploaded photo evidence (with private citizen details redacted).
 
-5. **Admin Review & Status Triage (`/admin`):**
-   - Go to `/admin/login` and log in.
-   - Show the **Dashboard**: live complaint count cards, top reported areas horizontal bars, and category breakdown.
-   - Go to **Complaints** (`/admin/complaints`) and click **Review** on the newly submitted complaint.
-   - Show full citizen details, private landmark, AI diagnostics, and evidence photo.
-   - Change Status to `In Progress`, add an internal note: *"Road maintenance patch team dispatched."*, and click **Save Changes**.
-
-6. **Verify End-to-End Status Loop:**
-   - Return to `/track` and refresh; verify that the status badge has updated to `In Progress`.
-
-7. **Location Cluster Analysis (`/admin/locations`):**
-   - Show how complaints with varying casing (`kukatpally`, `Kukatpally`, ` KUKATPALLY `) are grouped together into a unified cluster without requiring expensive GPS or invasive tracking.
-   - Highlight the transparency notice stating that counts represent submitted reports, not verified ground truth.
-
----
-
-## 5. Explaining the AI to Judges
-
-When judges ask about the AI implementation:
-- **Server-Side Security:** The Gemini API key is never exposed to the frontend. All AI interactions occur via the Node.js Express backend.
-- **Prompt Injection Defense & Schema Validation:** User inputs are treated strictly as untrusted data. The Gemini model is prompted to return strict JSON matching an explicit schema. All returned categories and priorities are checked against whitelist enums on the server; invalid outputs are rejected and defaulted.
-- **Fail-Safe Design:** If the Gemini API experiences network latency, rate limits, or downtime, the user is never blocked from submitting. The system automatically routes the report with `Unclassified` category and `Needs review` priority for manual human triage.
-- **Responsible AI Boundaries:** AI priorities and department allocations are presented as informational recommendations to assist human triage, never as certified legal findings.
+### 5. Administrator Portal (`/admin`)
+- Go to `/admin/login`.
+- Enter the demo administrator credentials:
+  - **Email:** `admin@civicfix.local`
+  - **Password:** `admin123`
+- Inside the **Admin Dashboard**:
+  - View real-time complaint counters, category share donut chart, and city-wide Leaflet heatmap.
+  - Switch to the **Complaints** tab to see all citizen submissions.
+  - Notice the **`📷 Photo`** badge next to complaints with image evidence.
+  - Click **Review** on your submitted complaint to open the modal, inspect citizen remarks and full-resolution photo, change status to `In Progress` or `Resolved`, add an internal note, and save.
+- Return to `/track` to confirm that the citizen-facing tracking page immediately reflects the updated status.
 
 ---
 
-## 6. Deployment Guidelines
+## 6. How I Designed Responsible AI & Security Guardrails
 
-CivicFix AI runs on any standard Node.js hosting platform:
-- **Render.com / Railway.app / Fly.io:**
-  - Build command: `npm install`
-  - Start command: `node server/index.js`
-  - Configure the environment variables in the host settings dashboard.
-- **Database & Storage:** Hosted on your cloud Supabase instance.
+When developing the AI integration, I focused heavily on safety and reliability:
+- **Server-Side Isolation:** The Gemini API key is never bundled into frontend assets. All AI analysis requests pass through rate-limited Express endpoints.
+- **Strict Whitelist Output Schema:** User descriptions are treated as untrusted input. The Gemini prompt strictly demands JSON adhering to defined category and priority enums. Any unknown category is safely caught and sanitized to `Unclassified`.
+- **Informational AI Triage:** AI predictions assist human administrators; they do not make irreversible automated legal decisions or close tickets without human verification.
+- **Defense in Depth:** Even if external AI endpoints suffer network delays or quota limits, the platform's heuristic fallback ensures complaints are always processed and saved.
+
+---
+
+## 7. Future Roadmap
+
+If I continue expanding CivicFix AI into production:
+1. **WhatsApp & SMS Bot:** Allowing citizens without smartphones to report civic issues via a WhatsApp chatbot or toll-free SMS.
+2. **Automated WhatsApp Status Alerts:** Sending automatic message notifications to citizens when their complaint transitions from `In Progress` to `Resolved`.
+3. **Computer Vision Duplicate Detection:** Using image embedding similarity to cluster multiple photos of the same pothole or garbage dump submitted by different citizens.
+4. **Official Department Webhook Integration:** Bi-directional API connectors syncing tickets directly into municipal portals like GHMC (Praveena) or Hyderabad Water Board grievance desks.
+
+---
+
+*Thank you for evaluating CivicFix AI! If you have any questions about the code, architecture, or design decisions, please feel free to inspect the codebase or open an issue.*
