@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicFix AI — Civic Issue Reporting Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="brand">
+        <i data-lucide="landmark" class="icon-24" style="color: var(--color-lime);"></i>
+        <div class="brand-text">
+          <span class="brand-name">CivicFix AI</span>
+          <span class="brand-sub" data-i18n="siteTagline">Civic Issue Reporting Platform</span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation (>= 768px) -->
+      <nav class="nav-group desktop-nav">
+        <div class="lang-dropdown-wrapper">
+          <button id="langToggleBtn" class="lang-select-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <i data-lucide="globe" class="icon-16"></i>
+            <span class="lang-btn-text">English ▾</span>
+          </button>
+          <div class="lang-dropdown-menu" role="menu">
+            <button type="button" class="lang-dropdown-item active" data-lang="en">
+              <span>English</span>
+              <span class="lang-check">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="te">
+              <span>తెలుగు (Telugu)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="hi">
+              <span>हिन्दी (Hindi)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <a href="/" class="nav-link active" data-i18n="navHome">Home</a>
+        <a href="/issues" class="nav-link" data-i18n="navIssues">Issues</a>
+        <a href="/track" class="nav-link" data-i18n="navTrack">Track Complaint</a>
+        <a href="/report" class="nav-cta" data-i18n="navReport">
+          <i data-lucide="sparkles" class="icon-16"></i> Report Issue
+        </a>
+      </nav>
+
+      <!-- Mobile Actions (< 768px) -->
+      <div class="mobile-header-actions">
+        <div class="lang-dropdown-wrapper">
+          <button id="mobileLangToggleBtn" class="lang-select-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <span class="lang-btn-text">English ▾</span>
+          </button>
+          <div class="lang-dropdown-menu" role="menu">
+            <button type="button" class="lang-dropdown-item active" data-lang="en">
+              <span>English</span>
+              <span class="lang-check">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="te">
+              <span>తెలుగు (Telugu)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="hi">
+              <span>हिन्दी (Hindi)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <button id="mobileMenuBtn" class="mobile-menu-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+          <i data-lucide="menu" class="icon-24"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Collapsible Navigation Drawer -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer">
+      <div class="mobile-nav-links">
+        <a href="/" class="mobile-nav-link active" data-i18n="navHome">
+          <i data-lucide="landmark" class="icon-20"></i> Home
+        </a>
+        <a href="/issues" class="mobile-nav-link" data-i18n="navIssues">
+          <i data-lucide="list" class="icon-20"></i> Issues Board
+        </a>
+        <a href="/track" class="mobile-nav-link" data-i18n="navTrack">
+          <i data-lucide="search" class="icon-20"></i> Track Complaint
+        </a>
+        <a href="/report" class="mobile-nav-cta" data-i18n="navReport">
+          <i data-lucide="sparkles" class="icon-20"></i> Report an Issue
+        </a>
+
+        <!-- Mobile Language Selector Pills -->
+        <div class="mobile-lang-group">
+          <div class="mobile-lang-label">Select Language / భాష / भाषा</div>
+          <div class="mobile-lang-pills">
+            <button type="button" class="mobile-lang-pill active" data-lang="en">English</button>
+            <button type="button" class="mobile-lang-pill" data-lang="te">తెలుగు</button>
+            <button type="button" class="mobile-lang-pill" data-lang="hi">हिन्दी</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Prototype Notice Bar -->
+  <aside class="prototype-banner">
+    <div class="container">
+      <span data-i18n="prototypeNotice">CivicFix AI is an independent student prototype. Reports are not sent to government authorities.</span>
+      <div id="systemStatusText"><span class="status-indicator"><span class="dot dot-amber"></span> Initializing...</span></div>
+    </div>
+  </aside>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-grid">
+        <!-- Left: Text & Action Controls -->
+        <div class="hero-content">
+          <!-- Prototype Badge -->
+          <div class="prototype-badge">
+            <div class="prototype-badge-icon">
+              <i data-lucide="landmark" class="icon-16"></i>
+            </div>
+            <div class="prototype-badge-text">
+              <strong>Community Issue Reporting</strong>
+              Student Prototype · Hyderabad
+            </div>
+          </div>
+
+          <h1 class="hero-title">
+            Report Civic Problems<br>
+            in <span class="text-green">Your Area</span>
+          </h1>
+
+          <p class="hero-subtitle" data-i18n="heroSubtitle">
+            Raise complaints about potholes, garbage, water leaks and other public issues. Our AI helps classify, prioritize and route them to the right department.
+          </p>
+
+          <div class="hero-actions">
+            <a href="/report" class="btn btn-green" data-i18n="heroCtaReport">
+              <i data-lucide="sparkles" class="icon-16"></i> Report an Issue
+            </a>
+            <a href="/track" class="btn btn-secondary" data-i18n="heroCtaTrack">
+              <i data-lucide="search" class="icon-16"></i> Track Complaint
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: Realistic Charminar Photograph -->
+        <div class="hero-image-container">
+          <img src="/assets/hyderabad-hero.jpg" alt="Charminar, Hyderabad — Iconic Indian City Civic Landmark" loading="eager">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Six Civic Issue Category Tiles -->
+  <section class="category-tiles-section">
+    <div class="container">
+      <div class="category-tiles-grid">
+        <a href="/report?category=Road+Damage" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="construction" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catRoad">Road Damage</span>
+        </a>
+
+        <a href="/report?category=Garbage" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="trash-2" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catGarbage">Garbage</span>
+        </a>
+
+        <a href="/report?category=Water+Leakage" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="droplets" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catWater">Water Leakage</span>
+        </a>
+
+        <a href="/report?category=Streetlights" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="lightbulb" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catLights">Street Light</span>
+        </a>
+
+        <a href="/report?category=Drainage" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="waves" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catDrainage">Drainage</span>
+        </a>
+
+        <a href="/report?category=Other" class="category-tile">
+          <div class="category-tile-icon">
+            <i data-lucide="more-horizontal" class="icon-24"></i>
+          </div>
+          <span class="category-tile-label" data-i18n="catOther">Others</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works (3 Steps) -->
+  <section style="padding: 16px 0 36px 0;">
+    <div class="container">
+      <h2 style="margin-bottom: 16px;">How It Works</h2>
+      <div class="grid-three-col">
+        <div class="card" style="margin-bottom: 0;">
+          <div style="margin-bottom: 10px; color: var(--color-green);">
+            <i data-lucide="file-text" class="icon-24"></i>
+          </div>
+          <h3 data-i18n="step1Title">Describe the Issue</h3>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;" data-i18n="step1Desc">
+            Enter details in English or Telugu. Mention the locality and optionally attach a photo.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="margin-bottom: 10px; color: var(--color-green);">
+            <i data-lucide="sparkles" class="icon-24"></i>
+          </div>
+          <h3 data-i18n="step2Title">Review AI Suggestions</h3>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;" data-i18n="step2Desc">
+            AI suggests category, priority, and department for review. You can edit them before submitting.
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <div style="margin-bottom: 10px; color: var(--color-green);">
+            <i data-lucide="check-circle-2" class="icon-24"></i>
+          </div>
+          <h3 data-i18n="step3Title">Track Resolution</h3>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;" data-i18n="step3Desc">
+            Receive a unique tracking code to follow the status of your reported issue until resolved.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>CivicFix AI</strong> — Hyderabad Student Hackathon Prototype
+      </div>
+      <div style="display: flex; gap: 16px;">
+        <a href="/admin/login">Admin Portal</a>
+        <a href="/issues">Public Issues Board</a>
+        <a href="/track">Track Issue</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/translations.js"></script>
+  <script src="/js/common.js"></script>
+</body>
+</html>

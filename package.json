@@ -1,0 +1,29 @@
+{
+  "name": "civicfix-ai",
+  "version": "1.0.0",
+  "description": "CivicFix AI — Student Hackathon Prototype for Civic Issue Reporting",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "civic",
+    "hackathon",
+    "gemini",
+    "supabase",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@supabase/supabase-js": "^2.48.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}

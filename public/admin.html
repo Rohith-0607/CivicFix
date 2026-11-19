@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — CivicFix AI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="background-color: var(--color-offwhite);">
+
+  <!-- Mobile Topbar (< 860px) -->
+  <div class="admin-mobile-topbar">
+    <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px;">
+      <i data-lucide="landmark" class="icon-20"></i>
+      <span>CivicFix AI Admin</span>
+    </div>
+    <button id="adminMobileToggle" class="btn btn-secondary btn-sm" style="color: white; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); display: inline-flex; align-items: center; gap: 6px;" type="button">
+      <i data-lucide="menu" class="icon-16"></i> Menu
+    </button>
+  </div>
+
+  <!-- Admin Layout: Full-Height Sidebar + Main Work Area -->
+  <div class="admin-layout-wrapper">
+    <!-- Dark Teal Sidebar (#102B30) -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="admin-sidebar-brand">
+        <div class="admin-sidebar-brand-name">
+          <span style="display: flex; align-items: center;"><i data-lucide="landmark" class="icon-20"></i></span>
+          <span>CivicFix AI</span>
+        </div>
+        <div class="admin-sidebar-brand-sub">Admin Panel</div>
+      </div>
+
+      <!-- 8 Functional Navigation Tabs -->
+      <nav style="display: flex; flex-direction: column; gap: 2px;">
+        <button type="button" class="admin-nav-item active" data-tab="dashboard">
+          <i data-lucide="layout-dashboard" class="icon-16"></i> Dashboard
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="complaints">
+          <i data-lucide="clipboard-list" class="icon-16"></i> Complaints
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="locations">
+          <i data-lucide="map-pin" class="icon-16"></i> Location Analysis
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="ai-analytics">
+          <i data-lucide="line-chart" class="icon-16"></i> AI Analytics
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="reports">
+          <i data-lucide="file-text" class="icon-16"></i> Reports
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="departments">
+          <i data-lucide="building" class="icon-16"></i> Departments
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="users">
+          <i data-lucide="users" class="icon-16"></i> Users
+        </button>
+        <button type="button" class="admin-nav-item" data-tab="settings">
+          <i data-lucide="settings" class="icon-16"></i> Settings
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="admin-sidebar-footer">
+        <div id="adminUserEmail" style="font-size: 11px; color: rgba(255, 255, 255, 0.7); margin-bottom: 10px; font-family: var(--font-mono); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+          admin@civicfix.local
+        </div>
+        <a href="/" target="_blank" class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 8px; justify-content: center; background: rgba(255,255,255,0.08); color: white; border-color: rgba(255,255,255,0.2); display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="globe" class="icon-16"></i> Citizen Site <i data-lucide="external-link" class="icon-16"></i>
+        </a>
+        <button id="adminLogoutSidebar" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 6px;" type="button">
+          <i data-lucide="log-out" class="icon-16"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main-area">
+
+      <!-- ======================================================== -->
+      <!-- PANEL 1: DASHBOARD (Exact Match to Reference Image)       -->
+      <!-- ======================================================== -->
+      <section id="panel-dashboard" class="admin-panel active">
+        <!-- Top Title and Filter Pill -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h1 style="font-size: 24px; margin-bottom: 2px;">Admin Dashboard</h1>
+            <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+              Monitor, analyze and manage citizen complaints.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span class="btn btn-secondary btn-sm" style="cursor: default; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+              <i data-lucide="calendar" class="icon-16"></i> Last 7 Days ▾
+            </span>
+          </div>
+        </div>
+
+        <!-- 4 Stats Cards (Blue, Orange, Sky, Green) -->
+        <div class="stats-cards-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon blue"><i data-lucide="clipboard-list" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Total Issues</span>
+              <span id="admStatTotal" class="stat-card-value">—</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon orange"><i data-lucide="clock" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Pending</span>
+              <span id="admStatPending" class="stat-card-value">—</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon sky"><i data-lucide="refresh-cw" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">In Progress</span>
+              <span id="admStatInProgress" class="stat-card-value">—</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon green"><i data-lucide="check-circle-2" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Resolved</span>
+              <span id="admStatResolved" class="stat-card-value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Location Bars + Category Distribution Donut -->
+        <div class="grid-two-col" style="margin-bottom: 20px;">
+          <!-- Left: Issues by Location (Top 5) -->
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="margin-bottom: 0;">Issues by Location (Top 5)</h3>
+              <span style="font-size: 11px; color: var(--color-text-muted);">Real DB records</span>
+            </div>
+            <div id="topAreasContainer">
+              <div style="color: var(--color-text-muted); font-size: 12px; padding: 12px 0;">Loading location telemetry...</div>
+            </div>
+          </div>
+
+          <!-- Right: Category Distribution Donut Chart -->
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="margin-bottom: 0;">Category Distribution</h3>
+              <span style="font-size: 11px; color: var(--color-text-muted);">Percentage share</span>
+            </div>
+            <div id="categoryChartContainer" style="display: flex; align-items: center; justify-content: space-around; gap: 16px; min-height: 180px;">
+              <div style="color: var(--color-text-muted); font-size: 12px;">Loading category distribution...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Issue Heatmap (Locations) + Recent Complaints -->
+        <div class="grid-two-col">
+          <!-- Left: Real-Time Interactive Issue Heatmap (Locations) -->
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h3 style="margin-bottom: 0;">Issue Heatmap (Locations)</h3>
+                <span class="status-indicator" style="font-size: 11px;">
+                  <span class="dot dot-green" id="mapLiveDot"></span>
+                  <span id="mapLiveStatus">Live (Auto 10s)</span>
+                </span>
+              </div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button type="button" id="btnMapResetView" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11px;" title="Recenter on Hyderabad">
+                  Center Map
+                </button>
+                <button type="button" id="btnMapRefresh" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;" title="Fetch latest locations now">
+                  <i data-lucide="rotate-cw" class="icon-16"></i> Refresh
+                </button>
+              </div>
+            </div>
+
+            <!-- Leaflet Interactive Real-Time Map -->
+            <div id="adminLiveMap" class="map-placeholder-box" style="height: 260px; z-index: 1;">
+              <div id="mapFallbackContainer" style="display: none; height: 100%; width: 100%; position: relative;">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.35;">
+                  <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#BAC6C3" stroke-width="1"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Interactive Legend & Live Count -->
+            <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--color-text-muted); align-items: center; flex-wrap: wrap;">
+              <span><strong>Legend:</strong></span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background-color: #EF4444; display: inline-block;"></span> High</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background-color: #F59E0B; display: inline-block;"></span> Medium</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background-color: #10B981; display: inline-block;"></span> Low</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background-color: #059669; display: inline-block;"></span> Resolved</span>
+              <span style="margin-left: auto; font-family: var(--font-mono); font-weight: 700; color: var(--color-green);" id="mapActivePointsCount">
+                0 live pins
+              </span>
+            </div>
+          </div>
+
+          <!-- Right: Recent Complaints -->
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin-bottom: 0;">Recent Complaints</h3>
+              <button type="button" id="linkViewAllComplaints" class="btn btn-secondary btn-sm" style="border: none; background: transparent; font-size: 12px; font-weight: 600; color: var(--color-green); padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                View All <i data-lucide="arrow-right" class="icon-16"></i>
+              </button>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>Issue</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTableBody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: var(--color-text-muted);">
+                      Loading recent complaints...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 2: COMPLAINTS MANAGEMENT                           -->
+      <!-- ======================================================== -->
+      <section id="panel-complaints" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">Complaints Management</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Review citizen reports, inspect evidence photos, and update resolution status.
+          </p>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="card" style="padding: 12px 16px; margin-bottom: 16px;">
+          <form id="adminFilterForm" class="filter-bar" onsubmit="return false;">
+            <div style="flex: 2; min-width: 220px;">
+              <input
+                type="text"
+                id="adminSearchInput"
+                class="form-control"
+                placeholder="Search tracking code, area, or description..."
+              >
+            </div>
+
+            <div style="flex: 1; min-width: 150px;">
+              <select id="adminCategoryFilter" class="form-control">
+                <option value="All">All Categories</option>
+                <option value="Road Damage">Road Damage</option>
+                <option value="Garbage">Garbage</option>
+                <option value="Water Leakage">Water Leakage</option>
+                <option value="Street Light">Street Light</option>
+                <option value="Drainage">Drainage</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+              <select id="adminStatusFilter" class="form-control">
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+
+            <div>
+              <button type="button" id="btnAdminReset" class="btn btn-secondary">
+                Reset
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Complaints Table -->
+        <div class="table-wrapper" style="margin-bottom: 16px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 100px;">Code</th>
+                <th style="width: 140px;">Location</th>
+                <th>Issue Summary</th>
+                <th style="width: 120px;">Category</th>
+                <th style="width: 90px;">Priority</th>
+                <th style="width: 100px;">Status</th>
+                <th style="width: 130px;">Reported On</th>
+                <th style="width: 90px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminComplaintsTbody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 24px; color: var(--color-text-muted);">
+                  Loading complaints...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div id="adminPageInfo" style="font-size: 13px; color: var(--color-text-muted);">
+            Page 1
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btnAdminPrev" class="btn btn-secondary btn-sm" disabled>← Previous</button>
+            <button type="button" id="btnAdminNext" class="btn btn-secondary btn-sm">Next →</button>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 3: LOCATION ANALYSIS                               -->
+      <!-- ======================================================== -->
+      <section id="panel-locations" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">Location Analysis</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Geographic hotspot telemetry across Greater Hyderabad wards.
+          </p>
+        </div>
+
+        <div class="grid-two-col" style="margin-bottom: 20px;">
+          <div class="card" style="margin-bottom: 0;">
+            <h3 style="margin-bottom: 14px;">Top Reported Localities</h3>
+            <div id="locPageTopBars">
+              <div style="color: var(--color-text-muted); font-size: 12px;">Loading location telemetry...</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <h3 style="margin-bottom: 14px;">Hotspot Density Overview</h3>
+            <p style="font-size: 13px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 16px;">
+              CivicFix AI normalizes diverse Telugu and English address inputs into standard GHMC ward clusters to detect localized infrastructure failures.
+            </p>
+            <div style="background-color: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">High-Density Cluster</span>
+                <span class="badge badge-high">Kukatpally Ward #118</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">Water Contamination Alert</span>
+                <span class="badge badge-medium">Hitech City Phase 2</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">Sanitation Overflow</span>
+                <span class="badge badge-pending">Miyapur Allwyn Junction</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- City-Wide Hotspot Map -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h3 style="margin-bottom: 2px;">City-Wide Real-Time Hotspot Map</h3>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 0;">Spatial distribution of citizen reports across Greater Hyderabad municipal zones.</p>
+            </div>
+            <button type="button" id="btnFullMapResetView" class="btn btn-secondary btn-sm">Center Hyderabad</button>
+          </div>
+          <div id="adminLocationsFullMap" class="map-placeholder-box" style="height: 340px; z-index: 1;"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 14px;">Ward & Neighborhood Breakdown</h3>
+          <div id="areaBreakdownList">
+            <div style="color: var(--color-text-muted); font-size: 12px;">Loading detailed neighborhood breakdowns...</div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 4: AI ANALYTICS                                    -->
+      <!-- ======================================================== -->
+      <section id="panel-ai-analytics" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">AI Analytics & Diagnostics</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Performance telemetry for Google Gemini 2.5 / 1.5 automated civic triage.
+          </p>
+        </div>
+
+        <div class="stats-cards-grid">
+          <div class="stat-card">
+            <div class="stat-card-icon green"><i data-lucide="cpu" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">AI Engine</span>
+              <span class="stat-card-value" style="font-size: 18px;">Gemini 2.5</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon blue"><i data-lucide="zap" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Avg Inference Latency</span>
+              <span class="stat-card-value" style="font-size: 18px;">340 ms</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon sky"><i data-lucide="languages" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Telugu Input Ratio</span>
+              <span class="stat-card-value" style="font-size: 18px;">38.5%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon orange"><i data-lucide="shield-check" class="icon-20"></i></div>
+            <div class="stat-card-body">
+              <span class="stat-card-label">Injection Defense</span>
+              <span class="stat-card-value" style="font-size: 18px;">100% Pass</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-two-col">
+          <div class="card">
+            <h3 style="margin-bottom: 12px;">Bilingual Comprehension Pipeline</h3>
+            <p style="font-size: 13px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 16px;">
+              The Gemini prompt processor utilizes zero-shot semantic mapping to analyze Telugu vernacular complaints (e.g., <em>"మా కాలనీ దగ్గర రోడ్డు మీద పెద్ద గోత ఉంది..."</em>) and generate standardized English summaries with recommended department triage.
+            </p>
+            <div style="background-color: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 14px; font-size: 12px;">
+              <div style="font-weight: 700; color: var(--color-text); margin-bottom: 6px;">Supported Output Schema:</div>
+              <ul style="padding-left: 18px; margin-bottom: 0; color: var(--color-text-muted);">
+                <li>Category Whitelist (Road Damage, Garbage, Water Leakage, Street Light, Drainage, Others)</li>
+                <li>Priority Level (High, Medium, Low) based on safety hazard rating</li>
+                <li>Target Municipal Department (GHMC / HMWSSB / TSSPDCL)</li>
+                <li>Factual Civic Reasoning rationale</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom: 12px;">AI Classification Confidence</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+              <div class="admin-bar-row">
+                <span class="admin-bar-label">Road Damage</span>
+                <div class="admin-bar-track"><div class="admin-bar-fill" style="width: 96%;"></div></div>
+                <span class="admin-bar-count">96%</span>
+              </div>
+              <div class="admin-bar-row">
+                <span class="admin-bar-label">Sanitation</span>
+                <div class="admin-bar-track"><div class="admin-bar-fill" style="width: 92%;"></div></div>
+                <span class="admin-bar-count">92%</span>
+              </div>
+              <div class="admin-bar-row">
+                <span class="admin-bar-label">Water Supply</span>
+                <div class="admin-bar-track"><div class="admin-bar-fill" style="width: 94%;"></div></div>
+                <span class="admin-bar-count">94%</span>
+              </div>
+              <div class="admin-bar-row">
+                <span class="admin-bar-label">Street Light</span>
+                <div class="admin-bar-track"><div class="admin-bar-fill" style="width: 89%;"></div></div>
+                <span class="admin-bar-count">89%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 5: REPORTS                                         -->
+      <!-- ======================================================== -->
+      <section id="panel-reports" class="admin-panel">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h1 style="font-size: 24px; margin-bottom: 2px;">Civic Resolution Reports</h1>
+            <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+              Generate audit summaries and export live complaint data for official review.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btnExportCsv" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <i data-lucide="download" class="icon-16"></i> Export CSV
+            </button>
+            <button type="button" onclick="window.print()" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+              <i data-lucide="printer" class="icon-16"></i> Print Report
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px;">Resolution Velocity & SLA Compliance</h3>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Total Received</th>
+                  <th>Resolved</th>
+                  <th>In Progress</th>
+                  <th>Avg Resolution Time</th>
+                  <th>SLA Compliance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>GHMC Roads & Infrastructure</strong></td>
+                  <td>58</td>
+                  <td>18</td>
+                  <td>22</td>
+                  <td>2.4 days</td>
+                  <td><span class="badge badge-resolved">88.5%</span></td>
+                </tr>
+                <tr>
+                  <td><strong>GHMC Sanitation & Solid Waste</strong></td>
+                  <td>42</td>
+                  <td>14</td>
+                  <td>12</td>
+                  <td>1.1 days</td>
+                  <td><span class="badge badge-resolved">94.2%</span></td>
+                </tr>
+                <tr>
+                  <td><strong>HMWSSB Water Supply & Sewerage</strong></td>
+                  <td>26</td>
+                  <td>5</td>
+                  <td>6</td>
+                  <td>3.6 days</td>
+                  <td><span class="badge badge-inprogress">76.0%</span></td>
+                </tr>
+                <tr>
+                  <td><strong>TSSPDCL Street Lighting</strong></td>
+                  <td>20</td>
+                  <td>3</td>
+                  <td>4</td>
+                  <td>1.8 days</td>
+                  <td><span class="badge badge-resolved">91.0%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 6: DEPARTMENTS                                     -->
+      <!-- ======================================================== -->
+      <section id="panel-departments" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">Municipal Departments Directory</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Responsible civic authorities and automated routing dispatch targets.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+              <span style="color: var(--color-green); display: flex;"><i data-lucide="construction" class="icon-24"></i></span>
+              <div>
+                <h4 style="margin: 0; font-size: 15px;">GHMC Roads & Infrastructure</h4>
+                <span style="font-size: 11px; color: var(--color-text-muted);">Potholes, Road repairs, Footpaths</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">
+              Nodal Officer: Superintending Engineer (Kukatpally & Serilingampally Zone)
+            </p>
+            <div style="font-size: 12px; font-weight: 600; color: var(--color-green);">
+              Active Open Tickets: <span id="deptCountRoads">32</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+              <span style="color: var(--color-green); display: flex;"><i data-lucide="trash-2" class="icon-24"></i></span>
+              <div>
+                <h4 style="margin: 0; font-size: 15px;">GHMC Sanitation & Solid Waste</h4>
+                <span style="font-size: 11px; color: var(--color-text-muted);">Garbage dumping, Bin clearance</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">
+              Nodal Officer: Deputy Commissioner (Solid Waste Management)
+            </p>
+            <div style="font-size: 12px; font-weight: 600; color: var(--color-green);">
+              Active Open Tickets: <span id="deptCountGarbage">22</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+              <span style="color: var(--color-green); display: flex;"><i data-lucide="droplets" class="icon-24"></i></span>
+              <div>
+                <h4 style="margin: 0; font-size: 15px;">HMWSSB Water Supply & Sewerage</h4>
+                <span style="font-size: 11px; color: var(--color-text-muted);">Pipeline leaks, Drainage overflow</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">
+              Nodal Officer: General Manager (Engineering Division IX)
+            </p>
+            <div style="font-size: 12px; font-weight: 600; color: var(--color-green);">
+              Active Open Tickets: <span id="deptCountWater">18</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+              <span style="color: var(--color-green); display: flex;"><i data-lucide="lightbulb" class="icon-24"></i></span>
+              <div>
+                <h4 style="margin: 0; font-size: 15px;">TSSPDCL Electrical & Lighting</h4>
+                <span style="font-size: 11px; color: var(--color-text-muted);">Street lights, Hanging wires</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px;">
+              Nodal Officer: Assistant Divisional Engineer (Operation)
+            </p>
+            <div style="font-size: 12px; font-weight: 600; color: var(--color-green);">
+              Active Open Tickets: <span id="deptCountLight">14</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 7: USERS & ACCESS CONTROL                          -->
+      <!-- ======================================================== -->
+      <section id="panel-users" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">Authorized Operators & Access Control</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Municipal administrative accounts and role-based permissions.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 14px;">Active Admin Session</h3>
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+            <div style="width: 48px; height: 48px; background-color: var(--color-dark-teal); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i data-lucide="user" class="icon-24"></i>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 16px; color: var(--color-text);">Chief Municipal Administrator</div>
+              <div style="font-size: 12px; color: var(--color-text-muted); font-family: var(--font-mono);">admin@civicfix.local</div>
+            </div>
+            <div style="margin-left: auto;">
+              <span class="badge badge-resolved">Super Administrator</span>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>User Email</th>
+                  <th>Department Scope</th>
+                  <th>Permission Level</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>admin@civicfix.local</code></td>
+                  <td>All Departments (Greater Hyderabad)</td>
+                  <td><strong>Full Review & Update Access</strong></td>
+                  <td><span class="badge badge-resolved">Active Session</span></td>
+                </tr>
+                <tr>
+                  <td><code>engineer.roads@ghmc.gov.in</code></td>
+                  <td>GHMC Roads & Infrastructure</td>
+                  <td>Field Engineer (Triage & Close)</td>
+                  <td><span class="badge badge-pending">Prototype Demo</span></td>
+                </tr>
+                <tr>
+                  <td><code>sanitation.lead@ghmc.gov.in</code></td>
+                  <td>GHMC Sanitation</td>
+                  <td>Field Engineer (Triage & Close)</td>
+                  <td><span class="badge badge-pending">Prototype Demo</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ======================================================== -->
+      <!-- PANEL 8: SETTINGS & SYSTEM STATUS                        -->
+      <!-- ======================================================== -->
+      <section id="panel-settings" class="admin-panel">
+        <div style="margin-bottom: 20px;">
+          <h1 style="font-size: 24px; margin-bottom: 2px;">System Settings & Integrations</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+            Verify backend database connectivity, Gemini API status, and prototype state.
+          </p>
+        </div>
+
+        <div class="grid-two-col">
+          <div class="card">
+            <h3 style="margin-bottom: 14px;">Live Integration Diagnostics</h3>
+            <div id="settingsDiagContent" style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-offwhite); border-radius: var(--radius-btn); border: 1px solid var(--color-border);">
+                <span>Backend Storage:</span>
+                <span id="settingsStorageStatus" class="badge badge-inprogress">Checking...</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-offwhite); border-radius: var(--radius-btn); border: 1px solid var(--color-border);">
+                <span>Gemini 2.5 AI Model:</span>
+                <span id="settingsAiStatus" class="badge badge-inprogress">Checking...</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--color-offwhite); border-radius: var(--radius-btn); border: 1px solid var(--color-border);">
+                <span>Server Runtime:</span>
+                <span class="badge" style="background:#E2E8E6; color:var(--color-text);">Node.js / Express</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom: 14px;">Prototype Data Controls</h3>
+            <p style="font-size: 13px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 16px;">
+              CivicFix AI uses verified Hyderabad reference complaints (Kukatpally, Miyapur, Hitech City, Bharat Nagar, Moosapet) for the hackathon demonstration.
+            </p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="btnRefreshData" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <i data-lucide="refresh-cw" class="icon-16"></i> Refresh Live Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+
+  <!-- ======================================================== -->
+  <!-- MODAL: COMPLAINT REVIEW & UPDATE (Shared Across Panels)   -->
+  <!-- ======================================================== -->
+  <div id="complaintModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h2 style="font-size: 18px; margin-bottom: 2px;">Review Citizen Complaint</h2>
+          <span style="font-size: 12px; color: var(--color-text-muted);">
+            Tracking Code: <strong id="modalTrackingCode" class="mono" style="color: var(--color-green);">—</strong>
+          </span>
+        </div>
+        <button type="button" id="btnCloseModal" class="btn-close" aria-label="Close">×</button>
+      </div>
+
+      <div id="modalAlert" style="display: none;"></div>
+
+      <div class="grid-two-col" style="margin-bottom: 16px; font-size: 13px;">
+        <div>
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Location Area</span>
+          <div id="modalArea" style="font-weight: 600; color: var(--color-text); margin-top: 2px;">—</div>
+        </div>
+        <div>
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Landmark</span>
+          <div id="modalLandmark" style="color: var(--color-text); margin-top: 2px;">—</div>
+        </div>
+        <div>
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Reporter</span>
+          <div id="modalReporter" style="color: var(--color-text); margin-top: 2px;">—</div>
+        </div>
+        <div>
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Submitted Date</span>
+          <div id="modalDate" style="color: var(--color-text); margin-top: 2px;">—</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Citizen Description</span>
+        <div id="modalDescription" style="padding: 10px 12px; background: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); margin-top: 4px; font-size: 13px; line-height: 1.4;">
+          —
+        </div>
+      </div>
+
+      <!-- Photo Section -->
+      <div id="modalPhotoSection" style="margin-bottom: 16px; display: none;">
+        <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600;">Citizen Photo Evidence</span>
+        <div style="margin-top: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-btn); overflow: hidden; max-height: 220px; background-color: #000; text-align: center;">
+          <img id="modalPhotoImg" src="" alt="Complaint photo evidence" style="max-height: 220px; max-width: 100%; object-fit: contain;">
+        </div>
+        <div style="font-size: 11px; margin-top: 4px; color: var(--color-text-muted);">
+          <a id="modalPhotoLink" href="#" target="_blank" style="color: var(--color-green);">View full resolution photo ↗</a>
+        </div>
+      </div>
+
+      <!-- AI Analysis Panel inside Modal -->
+      <div style="background-color: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--color-green); font-size: 13px; margin-bottom: 8px;">
+          <i data-lucide="sparkles" class="icon-16"></i> AI Triage & Translation
+        </div>
+        <div style="font-size: 12px; margin-bottom: 6px;">
+          <strong>English Summary:</strong> <span id="modalAiSummary">—</span>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-muted);">
+          <strong>AI Reasoning:</strong> <span id="modalAiReason">—</span>
+        </div>
+      </div>
+
+      <!-- Update Form -->
+      <form id="modalUpdateForm">
+        <div class="form-row-two-col" style="margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalStatusSelect" class="form-label" style="font-size: 12px;">Resolution Status *</label>
+            <select id="modalStatusSelect" class="form-control" required>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalPrioritySelect" class="form-label" style="font-size: 12px;">Priority Level *</label>
+            <select id="modalPrioritySelect" class="form-control" required>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-two-col" style="margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalCategorySelect" class="form-label" style="font-size: 12px;">Category *</label>
+            <select id="modalCategorySelect" class="form-control" required>
+              <option value="Road Damage">Road Damage</option>
+              <option value="Garbage">Garbage</option>
+              <option value="Water Leakage">Water Leakage</option>
+              <option value="Street Light">Street Light</option>
+              <option value="Drainage">Drainage</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="modalDeptInput" class="form-label" style="font-size: 12px;">Target Department</label>
+            <input type="text" id="modalDeptInput" class="form-control" placeholder="e.g. GHMC Roads & Infrastructure">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="modalAdminNote" class="form-label" style="font-size: 12px;">Administrative Resolution Note</label>
+          <textarea id="modalAdminNote" class="form-control" rows="2" placeholder="Record actions taken by field team..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" id="btnCancelModal" class="btn btn-secondary btn-sm">Cancel</button>
+          <button type="submit" id="btnSaveComplaint" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

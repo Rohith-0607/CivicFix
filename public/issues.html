@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reported Issues in Your Area — CivicFix AI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="brand">
+        <span class="brand-icon"><i data-lucide="landmark" class="icon-20"></i></span>
+        <div class="brand-text">
+          <span class="brand-name">CivicFix AI</span>
+          <span class="brand-sub" data-i18n="siteTagline">Civic Issue Reporting Platform</span>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-group desktop-only">
+        <div class="lang-dropdown-wrapper">
+          <button id="langToggleBtn" class="lang-select-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <i data-lucide="globe" class="icon-16"></i>
+            <span class="lang-btn-text">English ▾</span>
+          </button>
+          <div class="lang-dropdown-menu" role="menu">
+            <button type="button" class="lang-dropdown-item active" data-lang="en">
+              <span>English</span>
+              <span class="lang-check">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="te">
+              <span>తెలుగు (Telugu)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+            <button type="button" class="lang-dropdown-item" data-lang="hi">
+              <span>हिन्दी (Hindi)</span>
+              <span class="lang-check" style="display:none;">✓</span>
+            </button>
+          </div>
+        </div>
+
+        <a href="/" class="nav-link" data-i18n="navHome">Home</a>
+        <a href="/issues" class="nav-link active" data-i18n="navIssues">Issues</a>
+        <a href="/track" class="nav-link" data-i18n="navTrack">Track Complaint</a>
+        <a href="/report" class="nav-cta" data-i18n="navReport"><i data-lucide="sparkles" class="icon-16"></i> Report Issue</a>
+      </nav>
+
+      <!-- Mobile Hamburger Button -->
+      <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+        <i data-lucide="menu" class="icon-20"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Nav Drawer -->
+    <div id="mobileNavDrawer" class="mobile-nav-drawer">
+      <div class="mobile-nav-links">
+        <a href="/" class="nav-link" data-i18n="navHome">Home</a>
+        <a href="/issues" class="nav-link active" data-i18n="navIssues">Issues</a>
+        <a href="/track" class="nav-link" data-i18n="navTrack">Track Complaint</a>
+        <a href="/report" class="nav-cta" style="margin-top: 8px; justify-content: center;" data-i18n="navReport">
+          <i data-lucide="sparkles" class="icon-16"></i> Report Issue
+        </a>
+
+        <!-- Mobile Language Selector Pills -->
+        <div class="mobile-lang-group">
+          <div class="mobile-lang-label">Select Language / భాష / भाषा</div>
+          <div class="mobile-lang-pills">
+            <button type="button" class="mobile-lang-pill active" data-lang="en">English</button>
+            <button type="button" class="mobile-lang-pill" data-lang="te">తెలుగు</button>
+            <button type="button" class="mobile-lang-pill" data-lang="hi">हिन्दी</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Prototype Notice Bar -->
+  <aside class="prototype-banner">
+    <div class="container">
+      <span data-i18n="prototypeNotice">CivicFix AI is an independent student prototype. Reports are not sent to government authorities.</span>
+      <div id="systemStatusText"><span class="status-indicator"><span class="dot dot-amber"></span> Initializing...</span></div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; padding: 24px 0 48px 0;">
+    <div class="container">
+      <!-- Title & View Toggles -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h1 style="font-size: 26px; margin-bottom: 4px;" data-i18n="publicIssuesTitle">Reported Issues in Your Area</h1>
+          <p style="color: var(--color-text-muted); font-size: 14px; margin-bottom: 0;" data-i18n="publicIssuesSubtitle">
+            View recent civic problems and their current status.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btnViewList" class="btn btn-green btn-sm">
+            <i data-lucide="list" class="icon-16"></i> List View
+          </button>
+          <button type="button" id="btnViewMap" class="btn btn-secondary btn-sm">
+            <i data-lucide="map" class="icon-16"></i> Map View
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Statistics Cards -->
+      <div class="stats-cards-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon blue"><i data-lucide="clipboard-list" class="icon-20"></i></div>
+          <div class="stat-card-body">
+            <span class="stat-card-label" data-i18n="statTotal">Total Issues</span>
+            <span id="countTotal" class="stat-card-value">—</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon orange"><i data-lucide="clock" class="icon-20"></i></div>
+          <div class="stat-card-body">
+            <span class="stat-card-label" data-i18n="statPending">Pending</span>
+            <span id="countPending" class="stat-card-value">—</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon sky"><i data-lucide="refresh-cw" class="icon-20"></i></div>
+          <div class="stat-card-body">
+            <span class="stat-card-label" data-i18n="statInProgress">In Progress</span>
+            <span id="countInProgress" class="stat-card-value">—</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon green"><i data-lucide="check-circle-2" class="icon-20"></i></div>
+          <div class="stat-card-body">
+            <span class="stat-card-label" data-i18n="statResolved">Resolved</span>
+            <span id="countResolved" class="stat-card-value">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="card" style="padding: 12px 16px; margin-bottom: 16px;">
+        <form id="filterForm" class="filter-bar" onsubmit="return false;">
+          <div style="flex: 1; min-width: 160px;">
+            <select id="filterCategory" class="form-control">
+              <option value="All" data-i18n="filterAll">All Categories</option>
+              <option value="Road Damage">Road Damage</option>
+              <option value="Garbage">Garbage</option>
+              <option value="Water Leakage">Water Leakage</option>
+              <option value="Streetlights">Streetlights</option>
+              <option value="Drainage">Drainage</option>
+              <option value="Other">Other</option>
+              <option value="Unclassified">Unclassified</option>
+            </select>
+          </div>
+
+          <div style="flex: 1; min-width: 140px;">
+            <select id="filterStatus" class="form-control">
+              <option value="All" data-i18n="filterStatusAll">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+
+          <div style="flex: 2; min-width: 240px; position: relative;">
+            <input
+              type="text"
+              id="filterSearch"
+              class="form-control"
+              data-i18n-placeholder="searchPlaceholder"
+              placeholder="Search by location or issue..."
+              style="padding-right: 36px;"
+            >
+            <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); pointer-events: none; display: flex; align-items: center;">
+              <i data-lucide="search" class="icon-16"></i>
+            </span>
+          </div>
+
+          <button type="button" id="btnResetFilters" class="btn btn-secondary btn-sm">Reset</button>
+        </form>
+      </div>
+
+      <!-- List View: Issues Table -->
+      <div id="listViewContainer">
+        <div class="table-wrapper">
+          <table id="issuesTable" class="responsive-card-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">ID</th>
+                <th style="min-width: 240px;">Issue</th>
+                <th>Location</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Reported On</th>
+              </tr>
+            </thead>
+            <tbody id="issuesTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 32px; color: var(--color-text-muted);">
+                  Loading issues from database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyNotice" class="card" style="display: none; text-align: center; padding: 48px 24px; margin-top: 16px;">
+          <div style="font-size: 32px; margin-bottom: 8px; color: var(--color-text-muted); display: flex; justify-content: center;">
+            <i data-lucide="inbox" class="icon-24" style="width: 40px; height: 40px;"></i>
+          </div>
+          <h3 data-i18n="noIssuesFound">No reports found. Try a different filter.</h3>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 16px;">
+            Be the first to report an issue in this area.
+          </p>
+          <a href="/report" class="btn btn-green btn-sm" data-i18n="navReport">
+            <i data-lucide="sparkles" class="icon-16"></i> Report Issue
+          </a>
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationBar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+          <span id="pageInfo" style="font-size: 13px; color: var(--color-text-muted);">Page 1</span>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btnPrevPage" class="btn btn-secondary btn-sm" disabled>← Previous</button>
+            <button type="button" id="btnNextPage" class="btn btn-secondary btn-sm" disabled>Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map View (Optional view matching reference mockup) -->
+      <div id="mapViewContainer" style="display: none;">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h3 style="margin-bottom: 2px;">Hyderabad Civic Issue Map</h3>
+              <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 0;">
+                Locality distribution of citizen complaints across Hyderabad clusters.
+              </p>
+            </div>
+            <span class="badge badge-inprogress">Cluster Density View</span>
+          </div>
+
+          <!-- Stylized Hyderabad Geographic Heatmap / Cluster Grid -->
+          <div style="background-color: #EBF2F0; border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 24px; min-height: 380px; position: relative;">
+            <div class="grid-three-col">
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Kukatpally</strong>
+                  <span class="badge badge-high" id="mapKukatpallyCount">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Potholes, Road dividers & Drainage
+                </p>
+                <a href="/issues?search=Kukatpally" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
+              </div>
+
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Miyapur</strong>
+                  <span class="badge badge-medium" id="mapMiyapurCount">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Garbage accumulation, Streetlights
+                </p>
+                <a href="/issues?search=Miyapur" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
+              </div>
+
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Hitech City</strong>
+                  <span class="badge badge-resolved" id="mapHitechCount">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Water leakage, Pipeline maintenance
+                </p>
+                <a href="/issues?search=Hitech" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
+              </div>
+
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Bharat Nagar</strong>
+                  <span class="badge badge-medium">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Drainage overflow & Broken lamps
+                </p>
+                <a href="/issues?search=Bharat" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
+              </div>
+
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Moosapet</strong>
+                  <span class="badge badge-high">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Road cratering & Waste collection
+                </p>
+                <a href="/issues?search=Moosapet" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
+              </div>
+
+              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Secunderabad / Other</strong>
+                  <span class="badge badge-low">Active</span>
+                </div>
+                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                  Civic parks & Footpath clearance
+                </p>
+                <a href="/issues" class="btn btn-secondary btn-sm" style="width: 100%;">View All Areas</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div data-i18n="prototypeNotice">
+        CivicFix AI is an independent student prototype. Reports are not sent to government authorities.
+      </div>
+      <div>
+        <a href="/admin/login" data-i18n="adminLogin">Admin Login</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/translations.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/issues.js"></script>
+</body>
+</html>
