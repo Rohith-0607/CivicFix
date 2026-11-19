@@ -3,8 +3,10 @@
 
 const { supabase, isConfigured } = require('./supabase');
 
-// Demo token accepted only when running in unconfigured offline/hackathon demo mode
+// Demo token accepted only in development / demo mode (not in production)
 const DEMO_TOKEN = 'demo-admin-session-token-2026';
+const isProduction = process.env.NODE_ENV === 'production';
+const isDemoAllowed = !isProduction || process.env.ALLOW_DEMO_LOGIN === 'true';
 
 async function requireAdminAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -18,8 +20,8 @@ async function requireAdminAuth(req, res, next) {
 
   const token = authHeader.split(' ')[1];
 
-  // Demo admin token accepted in all modes for seamless evaluation & hackathon judging
-  if (token === DEMO_TOKEN || token.startsWith('demo-')) {
+  // Demo admin token accepted in development / hackathon demo mode only
+  if (isDemoAllowed && token === DEMO_TOKEN) {
     req.adminUser = {
       id: 'demo-admin-user-id',
       email: 'admin@civicfix.local',

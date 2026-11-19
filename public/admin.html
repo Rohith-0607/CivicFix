@@ -270,9 +270,10 @@
                 <option value="Road Damage">Road Damage</option>
                 <option value="Garbage">Garbage</option>
                 <option value="Water Leakage">Water Leakage</option>
-                <option value="Street Light">Street Light</option>
+                <option value="Streetlights">Streetlights</option>
                 <option value="Drainage">Drainage</option>
-                <option value="Others">Others</option>
+                <option value="Other">Other</option>
+                <option value="Unclassified">Unclassified</option>
               </select>
             </div>
 
@@ -351,24 +352,28 @@
           </div>
 
           <div class="card" style="margin-bottom: 0;">
-            <h3 style="margin-bottom: 14px;">Hotspot Density Overview</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="margin-bottom: 0;">Hotspot Density Overview</h3>
+              <span class="badge badge-secondary" style="font-size: 10px;">Demo data</span>
+            </div>
             <p style="font-size: 13px; color: var(--color-text-muted); line-height: 1.5; margin-bottom: 16px;">
               CivicFix AI normalizes diverse Telugu and English address inputs into standard GHMC ward clusters to detect localized infrastructure failures.
             </p>
             <div style="background-color: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 16px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">High-Density Cluster</span>
-                <span class="badge badge-high">Kukatpally Ward #118</span>
+                <span class="badge badge-high">Kukatpally Ward #118 (Sample)</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">Water Contamination Alert</span>
-                <span class="badge badge-medium">Hitech City Phase 2</span>
+                <span class="badge badge-medium">Hitech City Phase 2 (Sample)</span>
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span style="font-size: 12px; font-weight: 600; color: var(--color-text);">Sanitation Overflow</span>
-                <span class="badge badge-pending">Miyapur Allwyn Junction</span>
+                <span class="badge badge-pending">Miyapur Allwyn Junction (Sample)</span>
               </div>
             </div>
+            <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px; margin-bottom: 0;">* Illustrative sample alerts. Real-time hotspot clustering is calculated from database coordinates above.</p>
           </div>
         </div>
 
@@ -400,7 +405,7 @@
         <div style="margin-bottom: 20px;">
           <h1 style="font-size: 24px; margin-bottom: 2px;">AI Analytics & Diagnostics</h1>
           <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
-            Performance telemetry for Google Gemini 2.5 / 1.5 automated civic triage.
+            Performance telemetry for Google Gemini (configured via API) automated civic triage.
           </p>
         </div>
 
@@ -409,7 +414,7 @@
             <div class="stat-card-icon green"><i data-lucide="cpu" class="icon-20"></i></div>
             <div class="stat-card-body">
               <span class="stat-card-label">AI Engine</span>
-              <span class="stat-card-value" style="font-size: 18px;">Gemini 2.5</span>
+              <span class="stat-card-value" style="font-size: 16px;">Gemini (API configured)</span>
             </div>
           </div>
 
@@ -417,7 +422,7 @@
             <div class="stat-card-icon blue"><i data-lucide="zap" class="icon-20"></i></div>
             <div class="stat-card-body">
               <span class="stat-card-label">Avg Inference Latency</span>
-              <span class="stat-card-value" style="font-size: 18px;">340 ms</span>
+              <span class="stat-card-value" style="font-size: 16px;">Not measured</span>
             </div>
           </div>
 
@@ -425,7 +430,7 @@
             <div class="stat-card-icon sky"><i data-lucide="languages" class="icon-20"></i></div>
             <div class="stat-card-body">
               <span class="stat-card-label">Telugu Input Ratio</span>
-              <span class="stat-card-value" style="font-size: 18px;">38.5%</span>
+              <span class="stat-card-value" style="font-size: 16px;">Not measured</span>
             </div>
           </div>
 
@@ -433,7 +438,7 @@
             <div class="stat-card-icon orange"><i data-lucide="shield-check" class="icon-20"></i></div>
             <div class="stat-card-body">
               <span class="stat-card-label">Injection Defense</span>
-              <span class="stat-card-value" style="font-size: 18px;">100% Pass</span>
+              <span class="stat-card-value" style="font-size: 16px;">Not measured</span>
             </div>
           </div>
         </div>
@@ -447,7 +452,7 @@
             <div style="background-color: var(--color-offwhite); border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 14px; font-size: 12px;">
               <div style="font-weight: 700; color: var(--color-text); margin-bottom: 6px;">Supported Output Schema:</div>
               <ul style="padding-left: 18px; margin-bottom: 0; color: var(--color-text-muted);">
-                <li>Category Whitelist (Road Damage, Garbage, Water Leakage, Street Light, Drainage, Others)</li>
+                <li>Category Whitelist (Road Damage, Garbage, Water Leakage, Streetlights, Drainage, Other, Unclassified)</li>
                 <li>Priority Level (High, Medium, Low) based on safety hazard rating</li>
                 <li>Target Municipal Department (GHMC / HMWSSB / TSSPDCL)</li>
                 <li>Factual Civic Reasoning rationale</li>
@@ -456,7 +461,10 @@
           </div>
 
           <div class="card">
-            <h3 style="margin-bottom: 12px;">AI Classification Confidence</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin-bottom: 0;">AI Classification Confidence</h3>
+              <span class="badge badge-secondary" style="font-size: 10px;">Benchmark Sample</span>
+            </div>
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
               <div class="admin-bar-row">
                 <span class="admin-bar-label">Road Damage</span>
@@ -474,10 +482,13 @@
                 <span class="admin-bar-count">94%</span>
               </div>
               <div class="admin-bar-row">
-                <span class="admin-bar-label">Street Light</span>
+                <span class="admin-bar-label">Streetlights</span>
                 <div class="admin-bar-track"><div class="admin-bar-fill" style="width: 89%;"></div></div>
                 <span class="admin-bar-count">89%</span>
               </div>
+            </div>
+            <div style="font-size: 11px; color: var(--color-text-muted); margin-top: 10px;">
+              * Validation dataset benchmark figures (sample evaluation metrics).
             </div>
           </div>
         </div>
@@ -507,7 +518,10 @@
         </div>
 
         <div class="card" style="margin-bottom: 20px;">
-          <h3 style="margin-bottom: 12px;">Resolution Velocity & SLA Compliance</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin-bottom: 0;">Resolution Velocity & SLA Compliance</h3>
+            <span class="badge badge-secondary" style="font-size: 11px;">Demo Data (Static Sample)</span>
+          </div>
           <div class="table-wrapper">
             <table>
               <thead>
@@ -564,11 +578,14 @@
       <!-- PANEL 6: DEPARTMENTS                                     -->
       <!-- ======================================================== -->
       <section id="panel-departments" class="admin-panel">
-        <div style="margin-bottom: 20px;">
-          <h1 style="font-size: 24px; margin-bottom: 2px;">Municipal Departments Directory</h1>
-          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
-            Responsible civic authorities and automated routing dispatch targets.
-          </p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h1 style="font-size: 24px; margin-bottom: 2px;">Municipal Departments Directory</h1>
+            <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">
+              Responsible civic authorities and automated routing dispatch targets.
+            </p>
+          </div>
+          <span class="badge badge-secondary" style="font-size: 11px;">Ticket Counts from DB</span>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
@@ -651,7 +668,10 @@
         </div>
 
         <div class="card">
-          <h3 style="margin-bottom: 14px;">Active Admin Session</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin-bottom: 0;">Active Admin Session</h3>
+            <span class="badge badge-secondary" style="font-size: 11px;">Local Development / Demo</span>
+          </div>
           <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
             <div style="width: 48px; height: 48px; background-color: var(--color-dark-teal); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
               <i data-lucide="user" class="icon-24"></i>
@@ -686,13 +706,13 @@
                   <td><code>engineer.roads@ghmc.gov.in</code></td>
                   <td>GHMC Roads & Infrastructure</td>
                   <td>Field Engineer (Triage & Close)</td>
-                  <td><span class="badge badge-pending">Prototype Demo</span></td>
+                  <td><span class="badge badge-pending">Sample User (Demo)</span></td>
                 </tr>
                 <tr>
                   <td><code>sanitation.lead@ghmc.gov.in</code></td>
                   <td>GHMC Sanitation</td>
                   <td>Field Engineer (Triage & Close)</td>
-                  <td><span class="badge badge-pending">Prototype Demo</span></td>
+                  <td><span class="badge badge-pending">Sample User (Demo)</span></td>
                 </tr>
               </tbody>
             </table>
@@ -849,9 +869,10 @@
               <option value="Road Damage">Road Damage</option>
               <option value="Garbage">Garbage</option>
               <option value="Water Leakage">Water Leakage</option>
-              <option value="Street Light">Street Light</option>
+              <option value="Streetlights">Streetlights</option>
               <option value="Drainage">Drainage</option>
-              <option value="Others">Others</option>
+              <option value="Other">Other</option>
+              <option value="Unclassified">Unclassified</option>
             </select>
           </div>
 

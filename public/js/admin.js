@@ -1008,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elRoads) elRoads.textContent = catMap['Road Damage'] || 0;
         if (elGarbage) elGarbage.textContent = catMap['Garbage'] || 0;
         if (elWater) elWater.textContent = (catMap['Water Leakage'] || 0) + (catMap['Drainage'] || 0);
-        if (elLight) elLight.textContent = catMap['Street Light'] || 0;
+        if (elLight) elLight.textContent = (catMap['Streetlights'] || catMap['Street Light'] || 0);
       }
     } catch (err) {
       console.error('Dept load error:', err);

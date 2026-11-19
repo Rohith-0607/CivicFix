@@ -42,25 +42,17 @@
         <form id="adminLoginForm" novalidate>
           <div class="form-group">
             <label for="adminEmail" class="form-label">Email Address</label>
-            <input type="email" id="adminEmail" name="email" class="form-control" required value="admin@civicfix.local" placeholder="admin@civicfix.local">
+            <input type="email" id="adminEmail" name="email" class="form-control" required placeholder="admin@civicfix.local">
           </div>
           <div class="form-group">
             <label for="adminPassword" class="form-label">Password</label>
-            <input type="password" id="adminPassword" name="password" class="form-control" required value="admin123" placeholder="••••••••">
+            <input type="password" id="adminPassword" name="password" class="form-control" required placeholder="••••••••">
           </div>
           <button type="submit" id="btnLoginSubmit" class="btn btn-green" style="width: 100%; margin-top: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
             <i data-lucide="log-in" class="icon-16"></i> Sign In to Admin
           </button>
-          <button type="button" id="btnQuickDemoLogin" class="btn btn-secondary" style="width: 100%; margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-            <i data-lucide="shield-check" class="icon-16"></i> One-Click Demo Admin Login
-          </button>
+          <p style="text-align: center; font-size: 11px; color: var(--color-text-muted); margin-top: 10px; margin-bottom: 0;">For demo access, use the administrator credentials provided in the README.</p>
         </form>
-
-        <div style="margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--color-border); font-size: 11px; color: var(--color-text-muted);">
-          <strong>Pre-Configured Demo Administrator:</strong><br>
-          Email: <code class="mono">admin@civicfix.local</code><br>
-          Password: <code class="mono">admin123</code>
-        </div>
       </div>
 
       <p style="text-align: center; font-size: 11px; color: var(--color-text-muted); margin-top: 16px;">
@@ -81,15 +73,6 @@
       const passwordInput = document.getElementById('adminPassword');
       const btnSubmit = document.getElementById('btnLoginSubmit');
       const alertBox = document.getElementById('loginAlert');
-
-      const btnQuickDemo = document.getElementById('btnQuickDemoLogin');
-      if (btnQuickDemo) {
-        btnQuickDemo.addEventListener('click', () => {
-          emailInput.value = 'admin@civicfix.local';
-          passwordInput.value = 'admin123';
-          form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        });
-      }
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();

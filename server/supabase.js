@@ -290,7 +290,7 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
   if (isConfigured) {
     let query = supabase
       .from('complaints')
-      .select('tracking_code, category, location_area, english_summary, priority, status, created_at', {
+      .select('tracking_code, category, location_area, landmark, english_summary, priority, status, created_at, latitude, longitude', {
         count: 'exact',
       })
       .order('created_at', { ascending: false });
@@ -344,10 +344,13 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
       tracking_code: c.tracking_code,
       category: c.category,
       location_area: c.location_area,
+      landmark: c.landmark || null,
       english_summary: c.english_summary,
       priority: c.priority,
       status: c.status,
       created_at: c.created_at,
+      latitude: c.latitude,
+      longitude: c.longitude,
     }));
 
     const counts = await getPublicIssueCounts();

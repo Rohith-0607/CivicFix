@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reported Issues in Your Area — CivicFix AI</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -233,87 +235,35 @@
         </div>
       </div>
 
-      <!-- Map View (Optional view matching reference mockup) -->
+      <!-- Map View (Real Database Driven Map & Locality Summary) -->
       <div id="mapViewContainer" style="display: none;">
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
             <div>
               <h3 style="margin-bottom: 2px;">Hyderabad Civic Issue Map</h3>
               <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 0;">
-                Locality distribution of citizen complaints across Hyderabad clusters.
+                Live geographic locations and locality summaries from citizen reports.
               </p>
             </div>
-            <span class="badge badge-inprogress">Cluster Density View</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="badge badge-resolved" id="mapPinCountBadge">0 Verified Pins</span>
+              <button type="button" id="btnCenterPublicMap" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                <i data-lucide="locate" class="icon-14"></i> Center Hyderabad
+              </button>
+            </div>
           </div>
 
-          <!-- Stylized Hyderabad Geographic Heatmap / Cluster Grid -->
-          <div style="background-color: #EBF2F0; border: 1px solid var(--color-border); border-radius: var(--radius-btn); padding: 24px; min-height: 380px; position: relative;">
-            <div class="grid-three-col">
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Kukatpally</strong>
-                  <span class="badge badge-high" id="mapKukatpallyCount">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Potholes, Road dividers & Drainage
-                </p>
-                <a href="/issues?search=Kukatpally" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
-              </div>
+          <!-- Real Interactive Leaflet Map for Reports with Valid Coordinates -->
+          <div id="publicIssuesMap" style="height: 380px; width: 100%; border-radius: var(--radius-btn); border: 1px solid var(--color-border); margin-bottom: 20px; z-index: 1; background-color: #EBF2F0;"></div>
 
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Miyapur</strong>
-                  <span class="badge badge-medium" id="mapMiyapurCount">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Garbage accumulation, Streetlights
-                </p>
-                <a href="/issues?search=Miyapur" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
-              </div>
-
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Hitech City</strong>
-                  <span class="badge badge-resolved" id="mapHitechCount">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Water leakage, Pipeline maintenance
-                </p>
-                <a href="/issues?search=Hitech" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
-              </div>
-
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Bharat Nagar</strong>
-                  <span class="badge badge-medium">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Drainage overflow & Broken lamps
-                </p>
-                <a href="/issues?search=Bharat" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
-              </div>
-
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Moosapet</strong>
-                  <span class="badge badge-high">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Road cratering & Waste collection
-                </p>
-                <a href="/issues?search=Moosapet" class="btn btn-secondary btn-sm" style="width: 100%;">View Reports</a>
-              </div>
-
-              <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> Secunderabad / Other</strong>
-                  <span class="badge badge-low">Active</span>
-                </div>
-                <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
-                  Civic parks & Footpath clearance
-                </p>
-                <a href="/issues" class="btn btn-secondary btn-sm" style="width: 100%;">View All Areas</a>
-              </div>
+          <!-- Database-Driven Locality Summaries -->
+          <div style="border-top: 1px solid var(--color-border); padding-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h4 style="margin: 0; font-size: 15px;">Reports by Locality</h4>
+              <span style="font-size: 11px; color: var(--color-text-muted);">Database-aggregated counts</span>
+            </div>
+            <div id="publicLocalityGrid" class="grid-three-col">
+              <div style="color: var(--color-text-muted); font-size: 13px; padding: 12px 0;">Loading locality summaries from database...</div>
             </div>
           </div>
         </div>

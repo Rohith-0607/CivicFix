@@ -250,8 +250,12 @@ router.post('/admin/login', async (req, res) => {
   const cleanEmail = String(email).toLowerCase().trim();
   const cleanPass = String(password).trim();
 
-  // 1. Built-in Demo Administrator Login (Always works for evaluation, demo & hackathon review)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isDemoAllowed = !isProduction || process.env.ALLOW_DEMO_LOGIN === 'true';
+
+  // 1. Built-in Demo Administrator Login (configurable for local dev / evaluation, disabled in strict prod)
   if (
+    isDemoAllowed &&
     (cleanEmail === 'admin@civicfix.local' || cleanEmail === 'admin' || cleanEmail === 'admin@civicfix.com') &&
     cleanPass === 'admin123'
   ) {

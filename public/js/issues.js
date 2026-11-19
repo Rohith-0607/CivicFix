@@ -28,6 +28,151 @@ document.addEventListener('DOMContentLoaded', () => {
   const listViewContainer = document.getElementById('listViewContainer');
   const mapViewContainer = document.getElementById('mapViewContainer');
 
+  let publicMap = null;
+  let publicMarkerLayer = null;
+  let cachedIssuesForMap = [];
+
+  const HYDERABAD_DEFAULT_CENTER = [17.445, 78.405];
+
+  function initPublicMap() {
+    const mapEl = document.getElementById('publicIssuesMap');
+    if (!mapEl || typeof L === 'undefined') return;
+
+    if (!publicMap) {
+      publicMap = L.map('publicIssuesMap', {
+        zoomControl: true,
+        attributionControl: false,
+      }).setView(HYDERABAD_DEFAULT_CENTER, 12);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        minZoom: 10,
+      }).addTo(publicMap);
+
+      publicMarkerLayer = L.layerGroup().addTo(publicMap);
+    }
+
+    renderPublicMapAndLocalities(cachedIssuesForMap);
+  }
+
+  function renderPublicMapAndLocalities(issues) {
+    const localityGrid = document.getElementById('publicLocalityGrid');
+    const mapPinCountBadge = document.getElementById('mapPinCountBadge');
+
+    if (!issues || issues.length === 0) {
+      if (localityGrid) {
+        localityGrid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--color-text-muted); padding: 24px; background: white; border-radius: var(--radius-btn); border: 1px dashed var(--color-border);">
+            No complaints found matching the selected filters.
+          </div>
+        `;
+      }
+      if (publicMarkerLayer) publicMarkerLayer.clearLayers();
+      if (mapPinCountBadge) mapPinCountBadge.textContent = '0 Verified Pins';
+      return;
+    }
+
+    // 1. Group complaints strictly by locality
+    const localityMap = {};
+    const validCoordIssues = [];
+
+    issues.forEach((issue) => {
+      const area = (issue.location_area || 'Other').trim();
+      if (!localityMap[area]) {
+        localityMap[area] = {
+          name: area,
+          count: 0,
+          categories: {},
+          statuses: {},
+        };
+      }
+      localityMap[area].count += 1;
+      localityMap[area].categories[issue.category] = (localityMap[area].categories[issue.category] || 0) + 1;
+      localityMap[area].statuses[issue.status] = (localityMap[area].statuses[issue.status] || 0) + 1;
+
+      // Only plot real coordinates
+      const lat = Number(issue.latitude);
+      const lng = Number(issue.longitude);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0 && lat >= 17.0 && lat <= 17.8 && lng >= 78.0 && lng <= 78.9) {
+        validCoordIssues.push(issue);
+      }
+    });
+
+    // 2. Render real locality summaries
+    if (localityGrid) {
+      const sortedLocalities = Object.values(localityMap).sort((a, b) => b.count - a.count);
+      localityGrid.innerHTML = sortedLocalities
+        .map((loc) => {
+          const topCategory = Object.entries(loc.categories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'General';
+          const pendingCount = loc.statuses['Pending'] || 0;
+          const badgeClass = pendingCount > 0 ? 'badge-high' : 'badge-resolved';
+
+          return `
+            <div class="card" style="background-color: var(--color-white); margin-bottom: 0; border-left: 4px solid var(--color-green);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="display: flex; align-items: center; gap: 6px;"><i data-lucide="map-pin" class="icon-16"></i> ${escapeHtml(loc.name)}</strong>
+                <span class="badge ${badgeClass}">${loc.count} Report${loc.count === 1 ? '' : 's'}</span>
+              </div>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 6px; margin-bottom: 8px;">
+                Main Category: <strong>${escapeHtml(topCategory)}</strong> (${loc.categories[topCategory]}x)
+              </p>
+              <a href="/issues?search=${encodeURIComponent(loc.name)}" class="btn btn-secondary btn-sm" style="width: 100%;">View Area Reports</a>
+            </div>
+          `;
+        })
+        .join('');
+
+      if (window.initIcons) window.initIcons();
+    }
+
+    // 3. Plot verified markers on Leaflet
+    if (publicMap && publicMarkerLayer) {
+      publicMarkerLayer.clearLayers();
+
+      const colorByPriority = {
+        High: '#EF4444',
+        Medium: '#F59E0B',
+        Low: '#10B981',
+        'Needs review': '#6B7280',
+      };
+
+      validCoordIssues.forEach((c) => {
+        const markerColor = c.status === 'Resolved' ? '#059669' : (colorByPriority[c.priority] || '#167D70');
+        const customIcon = L.divIcon({
+          className: 'civic-map-marker',
+          html: `<div style="background-color: ${markerColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
+        });
+
+        const marker = L.marker([Number(c.latitude), Number(c.longitude)], { icon: customIcon });
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; min-width: 170px;">
+            <div style="font-weight: 700; color: #102B30; margin-bottom: 2px;">${escapeHtml(c.tracking_code)}</div>
+            <div style="font-weight: 600; color: #167D70; margin-bottom: 4px;">${escapeHtml(c.category)}</div>
+            <div style="font-size: 11px; color: #4B5563; margin-bottom: 6px;">${escapeHtml(c.english_summary || c.location_area)}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #E5E7EB; padding-top: 4px;">
+              <span class="badge ${c.status === 'Resolved' ? 'badge-resolved' : 'badge-pending'}" style="font-size: 10px;">${escapeHtml(c.status)}</span>
+              <a href="/track?code=${encodeURIComponent(c.tracking_code)}" style="color: #167D70; font-weight: 600; text-decoration: none;">Track ↗</a>
+            </div>
+          </div>
+        `);
+        publicMarkerLayer.addLayer(marker);
+      });
+
+      if (validCoordIssues.length > 0) {
+        const group = L.featureGroup(publicMarkerLayer.getLayers());
+        publicMap.fitBounds(group.getBounds().pad(0.15), { maxZoom: 15 });
+      } else {
+        publicMap.setView(HYDERABAD_DEFAULT_CENTER, 12);
+      }
+    }
+
+    if (mapPinCountBadge) {
+      mapPinCountBadge.textContent = `${validCoordIssues.length} Verified Pin${validCoordIssues.length === 1 ? '' : 's'}`;
+    }
+  }
+
   // Toggle between List and Map View
   if (btnViewList && btnViewMap) {
     btnViewList.addEventListener('click', () => {
@@ -42,6 +187,18 @@ document.addEventListener('DOMContentLoaded', () => {
       btnViewList.className = 'btn btn-secondary btn-sm';
       listViewContainer.style.display = 'none';
       mapViewContainer.style.display = 'block';
+
+      setTimeout(() => {
+        initPublicMap();
+        if (publicMap) publicMap.invalidateSize();
+      }, 150);
+    });
+  }
+
+  const btnCenterMap = document.getElementById('btnCenterPublicMap');
+  if (btnCenterMap) {
+    btnCenterMap.addEventListener('click', () => {
+      if (publicMap) publicMap.setView(HYDERABAD_DEFAULT_CENTER, 12);
     });
   }
 
@@ -90,9 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
 
       if (json.success && json.data) {
+        cachedIssuesForMap = json.data.issues || [];
         renderCounts(json.data.counts);
         renderTable(json.data.issues);
         renderPagination(json.data.pagination);
+        renderPublicMapAndLocalities(cachedIssuesForMap);
       } else {
         issuesTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #DC2626; padding: 24px;">Failed to load issues.</td></tr>`;
       }
