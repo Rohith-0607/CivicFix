@@ -41,8 +41,495 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const isDemoMode = localStorage.getItem('civicfix_admin_demo') === 'true' ||
+                     token === 'demo_judge_session_active';
+
+  // Visual banner and labels when Demo Mode is active
+  if (isDemoMode) {
+    const demoBanner = document.getElementById('demoModeBanner');
+    if (demoBanner) demoBanner.style.display = 'flex';
+
+    document.querySelectorAll('#adminUserEmail').forEach((el) => {
+      el.textContent = 'admin@civicfix.demo (Judge Demo)';
+      el.title = 'Interactive Evaluation Sandbox Mode';
+    });
+
+    const resetBtn = document.getElementById('btnResetDemoData');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        DemoStore.reset();
+        loadDashboard();
+        if (currentTab === 'complaints') loadComplaints(1);
+        if (currentTab === 'locations') loadLocations();
+        fetchRealtimeMapPoints();
+        alert('Demo sample complaints have been reset to defaults.');
+      });
+    }
+
+    const exitBtn = document.getElementById('btnExitDemoMode');
+    if (exitBtn) {
+      exitBtn.addEventListener('click', logout);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // DEMO DATA STORE FOR EVALUATION SANDBOX (ISOLATED CLIENT-SIDE STATE)
+  // -------------------------------------------------------------
+  const DemoStore = {
+    KEY: 'civicfix_demo_complaints_v1',
+    getDefaults() {
+      return [
+        {
+          id: 'demo-1',
+          tracking_code: 'CF-3821',
+          description: 'Deep road potholes near RTC cross road Kukatpally junction causing severe traffic jams and risk of accidents.',
+          location_area: 'Kukatpally, Hyderabad',
+          normalized_area: 'kukatpally',
+          landmark: 'Near RTC Cross Road, Metro Pillar 120',
+          reporter_name: 'P. Rao',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4948,
+          longitude: 78.3996,
+          category: 'Road Damage',
+          priority: 'High',
+          suggested_department: 'Road Maintenance',
+          ai_reason: 'Deep road crater on major junction poses immediate traffic and two-wheeler collision hazards.',
+          english_summary: 'Pothole near RTC cross road causing vehicle skids',
+          status: 'In Progress',
+          admin_note: 'Road repair team dispatched with cold asphalt mix.',
+          created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+        },
+        {
+          id: 'demo-2',
+          tracking_code: 'CF-3819',
+          description: 'Community garbage dump overflowing outside residential colony for 3 days without collection.',
+          location_area: 'Miyapur, Hyderabad',
+          normalized_area: 'miyapur',
+          landmark: 'Opposite Community Park Gate 2',
+          reporter_name: 'S. Naidu',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4968,
+          longitude: 78.3588,
+          category: 'Garbage',
+          priority: 'Medium',
+          suggested_department: 'Sanitation',
+          ai_reason: 'Prolonged uncollected organic waste accumulation creates public hygiene and odor risks.',
+          english_summary: 'Garbage not collected outside colony for 3 days',
+          status: 'Pending',
+          admin_note: null,
+          created_at: new Date(Date.now() - 3600000 * 16).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 16).toISOString(),
+        },
+        {
+          id: 'demo-3',
+          tracking_code: 'CF-3815',
+          description: 'Water pipeline rupture leaking clean municipal water across street behind Cyber Towers.',
+          location_area: 'Hitech City, Hyderabad',
+          normalized_area: 'hitech city',
+          landmark: 'Behind Cyber Towers',
+          reporter_name: 'K. Sharma',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4435,
+          longitude: 78.3772,
+          category: 'Water Leakage',
+          priority: 'High',
+          suggested_department: 'Water Supply',
+          ai_reason: 'Significant water loss and localized roadway erosion on critical IT corridor artery.',
+          english_summary: 'Potable water pipeline burst behind Cyber Towers',
+          status: 'In Progress',
+          admin_note: 'Line valve shut off. Emergency repair team on site.',
+          created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+        },
+        {
+          id: 'demo-4',
+          tracking_code: 'CF-3811',
+          description: 'Multiple streetlights not functioning along main market road causing dark spots at night.',
+          location_area: 'Bharat Nagar, Hyderabad',
+          normalized_area: 'bharat nagar',
+          landmark: 'Near Railway Gate',
+          reporter_name: 'M. Ali',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4649,
+          longitude: 78.4312,
+          category: 'Streetlights',
+          priority: 'Low',
+          suggested_department: 'Street Lighting',
+          ai_reason: 'Non-functional street illumination poses night-time pedestrian safety risks.',
+          english_summary: 'Streetlights out along market road near railway gate',
+          status: 'Pending',
+          admin_note: null,
+          created_at: new Date(Date.now() - 3600000 * 30).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 30).toISOString(),
+        },
+        {
+          id: 'demo-5',
+          tracking_code: 'CF-3808',
+          description: 'Blocked stormwater drain causing foul sewage water to overflow onto the road.',
+          location_area: 'Moosapet, Hyderabad',
+          normalized_area: 'moosapet',
+          landmark: 'Near Y Junction',
+          reporter_name: 'V. Reddy',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4721,
+          longitude: 78.4239,
+          category: 'Drainage',
+          priority: 'High',
+          suggested_department: 'Drainage',
+          ai_reason: 'Sewage overflow creates public health hazards and risks localized flooding.',
+          english_summary: 'Drainage water overflow near Y junction',
+          status: 'In Progress',
+          admin_note: 'Suction jetting machine scheduled for clearance.',
+          created_at: new Date(Date.now() - 3600000 * 36).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+        },
+        {
+          id: 'demo-6',
+          tracking_code: 'CF-4902',
+          description: 'Dangerous crater on Road No. 12 after heavy rainfall with water filled inside.',
+          location_area: 'Banjara Hills, Hyderabad',
+          normalized_area: 'banjara hills',
+          landmark: 'Near Minar Restaurant',
+          reporter_name: 'R. K. Agarwal',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4156,
+          longitude: 78.4357,
+          category: 'Road Damage',
+          priority: 'High',
+          suggested_department: 'Road Maintenance',
+          ai_reason: 'Submerged crater on high-speed road causes sudden vehicle damage.',
+          english_summary: 'Deep water-filled pothole on Road No 12',
+          status: 'Pending',
+          admin_note: null,
+          created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+        },
+        {
+          id: 'demo-7',
+          tracking_code: 'CF-4911',
+          description: 'Water supply line ruptured flooding commercial complex basement and lane.',
+          location_area: 'Ameerpet, Hyderabad',
+          normalized_area: 'ameerpet',
+          landmark: 'Behind Big Bazaar',
+          reporter_name: 'T. Murthy',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4375,
+          longitude: 78.4482,
+          category: 'Water Leakage',
+          priority: 'High',
+          suggested_department: 'Water Supply',
+          ai_reason: 'Pressurized water main rupture threatens surrounding commercial basements.',
+          english_summary: 'High volume water main leak behind Big Bazaar',
+          status: 'In Progress',
+          admin_note: 'Isolation valve turned off; pipe section being replaced.',
+          created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+        },
+        {
+          id: 'demo-8',
+          tracking_code: 'CF-4918',
+          description: 'Organic waste and market vegetable discards cleaned and sanitized successfully.',
+          location_area: 'Charminar, Hyderabad',
+          normalized_area: 'charminar',
+          landmark: 'Near Laad Bazaar Entrance',
+          reporter_name: 'A. Qureshi',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.3616,
+          longitude: 78.4747,
+          category: 'Garbage',
+          priority: 'Low',
+          suggested_department: 'Sanitation',
+          ai_reason: 'Tourist zone market waste accumulated overnight.',
+          english_summary: 'Market vegetable waste cleared near Laad Bazaar',
+          status: 'Resolved',
+          admin_note: 'Compactor vehicle cleared waste. Bleaching powder applied.',
+          created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+        },
+        {
+          id: 'demo-9',
+          tracking_code: 'CF-4925',
+          description: 'Overhead LED street lighting cluster replaced on stadium approach road.',
+          location_area: 'Gachibowli, Hyderabad',
+          normalized_area: 'gachibowli',
+          landmark: 'Near Stadium Main Gate',
+          reporter_name: 'D. Sen',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4401,
+          longitude: 78.3489,
+          category: 'Streetlights',
+          priority: 'Medium',
+          suggested_department: 'Street Lighting',
+          ai_reason: 'High pedestrian evening traffic near sports complex.',
+          english_summary: 'Defective LED fixtures replaced near stadium',
+          status: 'Resolved',
+          admin_note: 'New 120W LED fixtures installed and tested operational.',
+          created_at: new Date(Date.now() - 3600000 * 72).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+        },
+        {
+          id: 'demo-10',
+          tracking_code: 'CF-4933',
+          description: 'Clogged roadside culvert overflowing with plastic debris into road gutter.',
+          location_area: 'Begumpet, Hyderabad',
+          normalized_area: 'begumpet',
+          landmark: 'Opposite Old Airport Flyover',
+          reporter_name: 'N. Prasad',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4447,
+          longitude: 78.4664,
+          category: 'Drainage',
+          priority: 'Medium',
+          suggested_department: 'Drainage',
+          ai_reason: 'Monsoon drain bottleneck risking waterlogging on airport road.',
+          english_summary: 'Plastic debris choking culvert near flyover',
+          status: 'Pending',
+          admin_note: null,
+          created_at: new Date(Date.now() - 3600000 * 10).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 10).toISOString(),
+        },
+        {
+          id: 'demo-11',
+          tracking_code: 'CF-4940',
+          description: 'Road surface asphalt repaving completed across Road No. 36 junction.',
+          location_area: 'Jubilee Hills, Hyderabad',
+          normalized_area: 'jubilee hills',
+          landmark: 'Road No. 36 Metro Station',
+          reporter_name: 'B. Joshi',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4319,
+          longitude: 78.4073,
+          category: 'Road Damage',
+          priority: 'Medium',
+          suggested_department: 'Road Maintenance',
+          ai_reason: 'Surface wear near metro station bus stop.',
+          english_summary: 'Bitumen resurfacing completed near metro station',
+          status: 'Resolved',
+          admin_note: 'Hot mix patch completed and rolled. Open to traffic.',
+          created_at: new Date(Date.now() - 3600000 * 96).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 30).toISOString(),
+        },
+        {
+          id: 'demo-12',
+          tracking_code: 'CF-4947',
+          description: 'Construction debris and stone dust dumped on pedestrian walkway.',
+          location_area: 'Madhapur, Hyderabad',
+          normalized_area: 'madhapur',
+          landmark: 'Near 100 Feet Road Junction',
+          reporter_name: 'S. Chakraborty',
+          photo_path: null,
+          photo_url: null,
+          latitude: 17.4483,
+          longitude: 78.3915,
+          category: 'Garbage',
+          priority: 'Medium',
+          suggested_department: 'Sanitation',
+          ai_reason: 'Sidewalk blockage forcing pedestrians onto active motor lanes.',
+          english_summary: 'Construction debris blocking pedestrian footpath',
+          status: 'In Progress',
+          admin_note: 'Notice issued to builder; municipal clearance truck dispatched.',
+          created_at: new Date(Date.now() - 3600000 * 19).toISOString(),
+          updated_at: new Date(Date.now() - 3600000 * 7).toISOString(),
+        },
+      ];
+    },
+    load() {
+      try {
+        const stored = localStorage.getItem(this.KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+      const defaults = this.getDefaults();
+      this.save(defaults);
+      return defaults;
+    },
+    save(list) {
+      try {
+        localStorage.setItem(this.KEY, JSON.stringify(list));
+      } catch {}
+    },
+    reset() {
+      localStorage.removeItem(this.KEY);
+      return this.load();
+    },
+    handle(url, options = {}) {
+      const list = this.load();
+      const method = (options.method || 'GET').toUpperCase();
+      const urlObj = new URL(url, 'http://localhost');
+      const pathname = urlObj.pathname;
+      const searchParams = urlObj.searchParams;
+
+      // 1. GET /api/admin/summary
+      if (pathname === '/api/admin/summary') {
+        const total = list.length;
+        const pending = list.filter((c) => c.status === 'Pending').length;
+        const in_progress = list.filter((c) => c.status === 'In Progress').length;
+        const resolved = list.filter((c) => c.status === 'Resolved').length;
+
+        const locMap = {};
+        list.forEach((c) => {
+          const norm = c.normalized_area || 'other';
+          if (!locMap[norm]) locMap[norm] = { area: c.location_area.split(',')[0].trim(), count: 0 };
+          locMap[norm].count++;
+        });
+        const topLocations = Object.values(locMap).sort((a, b) => b.count - a.count).slice(0, 5);
+
+        const catMap = {};
+        list.forEach((c) => { catMap[c.category] = (catMap[c.category] || 0) + 1; });
+        const categories = Object.entries(catMap).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count);
+
+        const mapPoints = list.filter((c) => c.latitude && c.longitude);
+
+        return {
+          success: true,
+          data: {
+            counts: { total, pending, in_progress, resolved },
+            recent: list.slice(0, 8),
+            topLocations,
+            categories,
+            mapPoints,
+            isConfigured: true,
+            isDemoMode: true,
+          },
+        };
+      }
+
+      // 2. GET /api/admin/complaints
+      if (pathname === '/api/admin/complaints' && method === 'GET') {
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '20', 10);
+        const status = searchParams.get('status');
+        const category = searchParams.get('category');
+        const area = searchParams.get('area');
+        const search = (searchParams.get('search') || '').toLowerCase().trim();
+
+        let filtered = [...list];
+        if (status && status !== 'All') filtered = filtered.filter((c) => c.status === status);
+        if (category && category !== 'All') filtered = filtered.filter((c) => c.category === category);
+        if (area && area !== 'All') filtered = filtered.filter((c) => c.normalized_area === area.toLowerCase());
+        if (search) {
+          filtered = filtered.filter((c) =>
+            c.tracking_code.toLowerCase().includes(search) ||
+            c.description.toLowerCase().includes(search) ||
+            c.location_area.toLowerCase().includes(search) ||
+            (c.english_summary && c.english_summary.toLowerCase().includes(search))
+          );
+        }
+
+        const totalCount = filtered.length;
+        const totalPages = Math.ceil(totalCount / limit) || 1;
+        const start = (page - 1) * limit;
+        const complaints = filtered.slice(start, start + limit);
+
+        return {
+          success: true,
+          data: {
+            complaints,
+            pagination: { page, limit, totalCount, totalPages },
+          },
+        };
+      }
+
+      // 3. GET /api/admin/complaints/:id
+      if (pathname.startsWith('/api/admin/complaints/') && method === 'GET') {
+        const id = decodeURIComponent(pathname.replace('/api/admin/complaints/', ''));
+        const found = list.find((c) => c.id === id || c.tracking_code === id);
+        if (!found) return { success: false, error: 'Complaint not found.' };
+        return { success: true, data: found };
+      }
+
+      // 4. PATCH /api/admin/complaints/:id
+      if (pathname.startsWith('/api/admin/complaints/') && method === 'PATCH') {
+        const id = decodeURIComponent(pathname.replace('/api/admin/complaints/', ''));
+        const idx = list.findIndex((c) => c.id === id || c.tracking_code === id);
+        if (idx === -1) return { success: false, error: 'Complaint not found.' };
+
+        let updates = {};
+        try { updates = JSON.parse(options.body || '{}'); } catch {}
+
+        if (updates.status) list[idx].status = updates.status;
+        if (updates.admin_note !== undefined) list[idx].admin_note = updates.admin_note;
+        if (updates.priority) list[idx].priority = updates.priority;
+        if (updates.category) list[idx].category = updates.category;
+        if (updates.suggested_department) list[idx].suggested_department = updates.suggested_department;
+        list[idx].updated_at = new Date().toISOString();
+
+        this.save(list);
+        return { success: true, data: list[idx] };
+      }
+
+      // 5. GET /api/admin/locations
+      if (pathname === '/api/admin/locations') {
+        const locMap = {};
+        list.forEach((item) => {
+          const key = item.normalized_area || 'other';
+          if (!locMap[key]) {
+            locMap[key] = {
+              area: item.location_area.split(',')[0].trim(),
+              normalized_area: key,
+              total_reports: 0,
+              categories: {},
+              statuses: { Pending: 0, 'In Progress': 0, Resolved: 0 },
+            };
+          }
+          locMap[key].total_reports++;
+          locMap[key].categories[item.category] = (locMap[key].categories[item.category] || 0) + 1;
+          if (locMap[key].statuses[item.status] !== undefined) locMap[key].statuses[item.status]++;
+        });
+        const topAreas = Object.values(locMap).sort((a, b) => b.total_reports - a.total_reports).slice(0, 5);
+        return {
+          success: true,
+          data: {
+            topAreas,
+            disclaimer: 'These figures count submitted reports, not verified problem frequency.',
+          },
+        };
+      }
+
+      // 6. GET /api/admin/map-locations
+      if (pathname === '/api/admin/map-locations') {
+        const points = list.filter((c) => c.latitude && c.longitude);
+        return {
+          success: true,
+          data: {
+            points,
+            count: points.length,
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+
+      return { success: false, error: 'Endpoint unhandled' };
+    },
+  };
+
   // Helper for authenticated API requests
   async function adminFetch(url, options = {}) {
+    // Demo Mode Interceptor: Uses isolated sample data; never calls or modifies production Supabase database
+    if (isDemoMode) {
+      const result = DemoStore.handle(url, options);
+      return {
+        ok: result.success !== false,
+        status: result.success === false ? 404 : 200,
+        json: async () => result,
+      };
+    }
+
+    // Real Supabase Administrator Request
     options.headers = options.headers || {};
     options.headers['Authorization'] = `Bearer ${token}`;
 
@@ -870,7 +1357,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (res.ok && json.success) {
           modalAlert.className = 'alert alert-success';
-          modalAlert.textContent = 'Changes saved successfully to database.';
+          modalAlert.textContent = isDemoMode
+            ? `Status updated to "${updates.status || 'Updated'}" (Demo Sandbox: Live Supabase unaffected).`
+            : 'Changes saved successfully to database.';
           modalAlert.style.display = 'block';
 
           setTimeout(() => {

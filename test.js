@@ -85,6 +85,27 @@ const server = app.listen(0, '127.0.0.1', async () => {
     const rPhotoFetch = await fetch(`${base}${photoComplaint.photo_url}`);
     console.log(`✓ 6b. Photo evidence visible in admin: photo_url="${photoComplaint.photo_url}", HTTP status=${rPhotoFetch.status} OK`);
 
+    // 6c. Security: Backend /api/admin/login strictly rejects demo credentials (demo is 100% client-side)
+    const r6c = await fetch(`${base}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@civicfix.demo', password: 'Demo@CivicFix2026' }),
+    });
+    const j6c = await r6c.json();
+    if (r6c.status !== 401 || j6c.success === true) {
+      throw new Error(`Backend unexpectedly accepted demo credentials! Status: ${r6c.status}, body: ${JSON.stringify(j6c)}`);
+    }
+    console.log(`✓ 6c. Security: Backend /api/admin/login strictly rejects demo credentials (HTTP 401: "${j6c.error}")`);
+
+    // 6d. Security Isolation: Demo session token cannot access protected server admin endpoints
+    const r6d = await fetch(`${base}/api/admin/summary`, {
+      headers: { Authorization: 'Bearer demo_judge_session_active' },
+    });
+    if (r6d.status !== 401) {
+      throw new Error(`Expected 401 for demo token on protected admin endpoint, got ${r6d.status}`);
+    }
+    console.log(`✓ 6d. Security Isolation: Demo session token strictly rejected by real admin API (HTTP 401)`);
+
     // 7. Admin summary
     const r7 = await fetch(`${base}/api/admin/summary`, {
       headers: { Authorization: `Bearer ${adminToken}` },

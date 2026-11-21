@@ -251,7 +251,7 @@ router.post('/admin/login', async (req, res) => {
   const cleanEmail = String(email).toLowerCase().trim();
   const cleanPass = String(password).trim();
 
-  // 1. Built-in Demo Administrator Login (strictly disabled in production, active in local dev)
+  // 1. Offline local development token (strictly disabled in production; only when isDemoAllowed is true)
   if (
     isDemoAllowed &&
     DEMO_TOKEN &&
@@ -263,10 +263,9 @@ router.post('/admin/login', async (req, res) => {
       data: {
         token: DEMO_TOKEN,
         user: {
-          id: 'demo-admin-user-id',
-          email: 'admin@civicfix.local',
+          id: 'local-dev-admin',
+          email: cleanEmail,
         },
-        isDemoMode: true,
       },
     });
   }
