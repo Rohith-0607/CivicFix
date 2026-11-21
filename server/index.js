@@ -7,8 +7,6 @@ const rateLimit = require('express-rate-limit');
 
 const publicRoutes = require('./routes/public');
 const adminRoutes = require('./routes/admin');
-const authRoutes = require('./routes/auth');
-const citizenRoutes = require('./routes/citizen');
 const { isConfigured } = require('./supabase');
 
 const app = express();
@@ -54,8 +52,6 @@ app.use('/api/track', publicTrackLimiter);
 
 // API routes
 app.use('/api', publicRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/citizen', citizenRoutes);
 app.use('/api/admin', adminRoutes);
 
 // API root info endpoint
@@ -109,11 +105,6 @@ app.get('/', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 app.get('/report', (req, res) => res.sendFile(path.join(publicDir, 'report.html')));
 app.get('/issues', (req, res) => res.sendFile(path.join(publicDir, 'issues.html')));
 app.get('/track', (req, res) => res.sendFile(path.join(publicDir, 'track.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(publicDir, 'login.html')));
-app.get('/signup', (req, res) => res.sendFile(path.join(publicDir, 'signup.html')));
-app.get('/forgot-password', (req, res) => res.sendFile(path.join(publicDir, 'forgot-password.html')));
-app.get('/reset-password', (req, res) => res.sendFile(path.join(publicDir, 'reset-password.html')));
-app.get('/my-complaints', (req, res) => res.sendFile(path.join(publicDir, 'my-complaints.html')));
 app.get('/admin/login', (req, res) => res.sendFile(path.join(publicDir, 'admin-login.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));
 app.get('/admin/complaints', (req, res) => res.sendFile(path.join(publicDir, 'admin.html')));

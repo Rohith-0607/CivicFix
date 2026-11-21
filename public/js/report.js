@@ -290,15 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (submitBtnText) submitBtnText.textContent = getTranslation('submittingText');
 
       try {
-        const headers = {};
-        const token = localStorage.getItem('civicfix_citizen_token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const res = await fetch('/api/complaints', {
           method: 'POST',
-          headers,
           body: formData,
         });
 

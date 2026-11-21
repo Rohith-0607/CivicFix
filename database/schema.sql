@@ -63,13 +63,6 @@ alter table complaints enable row level security;
 grant usage on schema public to service_role;
 grant select, insert, update, delete on table public.complaints to service_role;
 
--- RLS Policy: Authenticated citizens can view only their own complaints
-create policy "Citizens can view own complaints"
-on public.complaints
-for select
-to authenticated
-using (auth.uid() = reporter_user_id);
-
 -- Storage Bucket Setup for Private Complaint Evidence Photos
 -- Run in Supabase SQL Editor:
 insert into storage.buckets (id, name, public)

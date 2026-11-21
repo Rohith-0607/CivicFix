@@ -8,10 +8,10 @@ const {
   uploadPhoto,
   deletePhoto,
   isConfigured,
-  supabase,
+  createAuthClient,
 } = require('../supabase');
 const { analyzeComplaint, ALLOWED_CATEGORIES, ALLOWED_PRIORITIES } = require('../ai');
-const { DEMO_TOKEN, isDemoAllowed, optionalCitizenAuth } = require('../auth');
+const { DEMO_TOKEN, isDemoAllowed } = require('../auth');
 
 const router = express.Router();
 
@@ -75,9 +75,9 @@ router.post('/analyze', async (req, res) => {
 /**
  * POST /api/complaints
  * Multipart form submission (photo optional)
- * Supports both anonymous guests and authenticated citizens
+ * 100% anonymous citizen complaint reporting
  */
-router.post('/complaints', optionalCitizenAuth, upload.single('photo'), async (req, res) => {
+router.post('/complaints', upload.single('photo'), async (req, res) => {
   let uploadedPhotoPath = null;
 
   try {
@@ -130,15 +130,11 @@ router.post('/complaints', optionalCitizenAuth, upload.single('photo'), async (r
     const safeCategory = ALLOWED_CATEGORIES.includes(category) ? category : 'Unclassified';
     const safePriority = ALLOWED_PRIORITIES.includes(priority) ? priority : 'Needs review';
 
-    // Security: Derive reporter_user_id strictly from verified token, never from body
-    const verifiedReporterId = req.user ? req.user.id : null;
-
     const complaintData = {
       description: description.trim(),
       location_area: location_area.trim(),
       landmark: landmark ? landmark.trim().slice(0, 120) : null,
       reporter_name: reporter_name ? reporter_name.trim().slice(0, 80) : null,
-      reporter_user_id: verifiedReporterId,
       photo_path: uploadedPhotoPath,
       category: safeCategory,
       priority: safePriority,
@@ -275,10 +271,18 @@ router.post('/admin/login', async (req, res) => {
     });
   }
 
-  // 2. Supabase Auth Login if configured in environment
-  if (isConfigured && supabase) {
+  // 2. Supabase Auth Login if configured in environment (isolated client)
+  if (isConfigured) {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const authClient = createAuthClient();
+      if (!authClient) {
+        return res.status(500).json({
+          success: false,
+          error: 'Authentication client could not be initialized.',
+        });
+      }
+
+      const { data, error } = await authClient.auth.signInWithPassword({
         email: cleanEmail,
         password: cleanPass,
       });

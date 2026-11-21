@@ -294,52 +294,10 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function updateAuthHeaderNav() {
-  const token = localStorage.getItem('civicfix_citizen_token');
-  const nav = document.querySelector('.site-header .desktop-nav');
-  const mobileNav = document.querySelector('.mobile-nav-links');
-
-  if (nav && !nav.querySelector('#navAuthLink')) {
-    const authLink = document.createElement('a');
-    authLink.id = 'navAuthLink';
-    authLink.className = 'nav-link';
-    if (token) {
-      authLink.href = '/my-complaints';
-      authLink.textContent = 'My Complaints';
-      if (window.location.pathname === '/my-complaints') authLink.classList.add('active');
-    } else {
-      authLink.href = '/login';
-      authLink.textContent = 'Sign In';
-      if (window.location.pathname === '/login') authLink.classList.add('active');
-    }
-    const cta = nav.querySelector('.nav-cta');
-    if (cta) {
-      nav.insertBefore(authLink, cta);
-    } else {
-      nav.appendChild(authLink);
-    }
-  }
-
-  if (mobileNav && !mobileNav.querySelector('#mobileNavAuthLink')) {
-    const mobileAuthLink = document.createElement('a');
-    mobileAuthLink.id = 'mobileNavAuthLink';
-    mobileAuthLink.className = 'mobile-nav-link';
-    if (token) {
-      mobileAuthLink.href = '/my-complaints';
-      mobileAuthLink.innerHTML = `${getLucideSvg('clipboard-list', 20)} My Complaints`;
-    } else {
-      mobileAuthLink.href = '/login';
-      mobileAuthLink.innerHTML = `${getLucideSvg('users', 20)} Sign In / Register`;
-    }
-    mobileNav.appendChild(mobileAuthLink);
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   applyTranslations();
   setActiveNav();
   initMobileNav();
-  updateAuthHeaderNav();
   initIcons();
   checkSystemStatus();
   initLanguageDropdown();
