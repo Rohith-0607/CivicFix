@@ -79,6 +79,26 @@
     <!-- Main Content Area -->
     <main class="admin-main-area">
 
+      <!-- Prominent Persistent Banner in Demo Mode -->
+      <div id="demoModeBanner" style="display: none; background: linear-gradient(90deg, #102B30, #167D70); color: white; padding: 12px 18px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid var(--color-lime); box-shadow: 0 2px 8px rgba(16,43,48,0.1); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="background: var(--color-lime); color: var(--color-dark-teal); font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;">
+            <i data-lucide="sparkles" class="icon-12"></i> Demo Sandbox
+          </span>
+          <span style="font-size: 13px; font-weight: 500;">
+            Evaluation Mode Active — Displaying realistic sample complaints. Filtering, maps, and status updates work interactively in this session without modifying live production records.
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" id="btnResetDemoData" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 10px; background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.3); display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+            <i data-lucide="refresh-cw" class="icon-12"></i> Reset Sample Data
+          </button>
+          <button type="button" id="btnExitDemoMode" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 4px 10px; background: rgba(200,230,107,0.2); color: var(--color-lime); border-color: var(--color-lime); display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+            <i data-lucide="log-out" class="icon-12"></i> Exit Demo
+          </button>
+        </div>
+      </div>
+
       <!-- ======================================================== -->
       <!-- PANEL 1: DASHBOARD (Exact Match to Reference Image)       -->
       <!-- ======================================================== -->

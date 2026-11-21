@@ -27,22 +27,39 @@
   </header>
 
   <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 16px;">
-    <div style="max-width: 400px; width: 100%;">
-      <div class="card" style="border-top: 4px solid var(--color-dark-teal);">
+    <div style="max-width: 440px; width: 100%;">
+      <div class="card" style="border-top: 4px solid var(--color-dark-teal); box-shadow: 0 4px 16px rgba(16, 43, 48, 0.08);">
         <div style="text-align: center; margin-bottom: 20px;">
           <div style="width: 48px; height: 48px; background-color: var(--color-green-light); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;">
-            <i data-lucide="lock" class="icon-24" style="color: var(--color-green);"></i>
+            <i data-lucide="shield" class="icon-24" style="color: var(--color-green);"></i>
           </div>
-          <h1 style="font-size: 20px; margin-bottom: 4px;">Admin Portal Login</h1>
-          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">Sign in to review and triage complaints.</p>
+          <h1 style="font-size: 20px; margin-bottom: 4px;">Administrator Portal</h1>
+          <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 0;">Municipal complaint triage & dispatch system.</p>
         </div>
 
         <div id="loginAlert" class="alert" style="display: none;"></div>
 
+        <!-- 1-Click Demo Dashboard Access for Hackathon Judges -->
+        <div style="margin-bottom: 20px;">
+          <button type="button" id="btnExploreDemo" class="btn" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 14px; padding: 12px 16px; background-color: var(--color-lime); color: var(--color-dark-teal); border: 1px solid rgba(16, 43, 48, 0.15); border-radius: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(200, 230, 107, 0.4); transition: transform 0.15s ease, box-shadow 0.15s ease;">
+            <i data-lucide="sparkles" class="icon-18"></i> Explore Demo Dashboard (Instant Access)
+          </button>
+          <div style="text-align: center; margin-top: 6px; font-size: 11px; color: var(--color-text-muted);">
+            ✨ Passwordless evaluation mode for judges • Realistic sample complaints & interactive triage
+          </div>
+        </div>
+
+        <!-- Visual Divider -->
+        <div style="display: flex; align-items: center; text-align: center; margin: 16px 0; color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+          <div style="flex: 1; border-bottom: 1px solid var(--color-gray-border);"></div>
+          <span style="padding: 0 10px; font-weight: 600;">or municipal administrator sign in</span>
+          <div style="flex: 1; border-bottom: 1px solid var(--color-gray-border);"></div>
+        </div>
+
         <form id="adminLoginForm" novalidate>
           <div class="form-group">
             <label for="adminEmail" class="form-label">Email Address</label>
-            <input type="email" id="adminEmail" name="email" class="form-control" required placeholder="admin@civicfix.local">
+            <input type="email" id="adminEmail" name="email" class="form-control" required placeholder="admin@municipality.gov">
           </div>
           <div class="form-group">
             <label for="adminPassword" class="form-label">Password</label>
@@ -51,12 +68,14 @@
           <button type="submit" id="btnLoginSubmit" class="btn btn-green" style="width: 100%; margin-top: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
             <i data-lucide="log-in" class="icon-16"></i> Sign In to Admin
           </button>
-          <p style="text-align: center; font-size: 11px; color: var(--color-text-muted); margin-top: 10px; margin-bottom: 0;">For demo access, use the administrator credentials provided in the README.</p>
+          <p style="text-align: center; font-size: 11px; color: var(--color-text-muted); margin-top: 12px; margin-bottom: 0;">
+            Real municipal administrator accounts authenticate via secure Supabase Auth.
+          </p>
         </form>
       </div>
 
       <p style="text-align: center; font-size: 11px; color: var(--color-text-muted); margin-top: 16px;">
-        CivicFix AI is an independent student prototype.
+        CivicFix AI — Hyderabad Smart Municipal Hackathon Prototype.
       </p>
     </div>
   </main>
@@ -66,27 +85,55 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('civicfix_admin_token');
-      if (token) { window.location.href = '/admin'; return; }
+      // If already logged in, redirect to admin
+      if (token && window.location.search.indexOf('logout') === -1) {
+        window.location.href = '/admin';
+        return;
+      }
 
       const form = document.getElementById('adminLoginForm');
       const emailInput = document.getElementById('adminEmail');
       const passwordInput = document.getElementById('adminPassword');
       const btnSubmit = document.getElementById('btnLoginSubmit');
+      const btnExploreDemo = document.getElementById('btnExploreDemo');
       const alertBox = document.getElementById('loginAlert');
 
+      function activateDemoDashboard() {
+        localStorage.setItem('civicfix_admin_token', 'demo_judge_session_active');
+        localStorage.setItem('civicfix_admin_demo', 'true');
+        localStorage.setItem('civicfix_admin_user', JSON.stringify({
+          email: 'admin@civicfix.demo',
+          role: 'demo_judge',
+          name: 'Hackathon Judge',
+        }));
+        window.location.href = '/admin';
+      }
+
+      // 1. Passwordless Instant Demo Button for Judges
+      if (btnExploreDemo) {
+        btnExploreDemo.addEventListener('click', (e) => {
+          e.preventDefault();
+          activateDemoDashboard();
+        });
+      }
+
+      // 2. Form Submit Handler (Real Supabase Administrator Login)
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         alertBox.style.display = 'none';
         const email = emailInput.value.trim();
         const password = passwordInput.value;
+
         if (!email || !password) {
           alertBox.className = 'alert alert-error';
           alertBox.textContent = 'Please enter both email and password.';
           alertBox.style.display = 'block';
           return;
         }
+
         btnSubmit.disabled = true;
-        btnSubmit.textContent = 'Verifying...';
+        btnSubmit.textContent = 'Verifying with Supabase...';
+
         try {
           const res = await fetch('/api/admin/login', {
             method: 'POST',
@@ -94,13 +141,17 @@
             body: JSON.stringify({ email, password }),
           });
           const json = await res.json();
+
           if (res.ok && json.success && json.data) {
+            localStorage.removeItem('civicfix_admin_demo');
             localStorage.setItem('civicfix_admin_token', json.data.token);
-            if (json.data.user) localStorage.setItem('civicfix_admin_user', JSON.stringify(json.data.user));
+            if (json.data.user) {
+              localStorage.setItem('civicfix_admin_user', JSON.stringify(json.data.user));
+            }
             window.location.href = '/admin';
           } else {
             alertBox.className = 'alert alert-error';
-            alertBox.textContent = json.error || 'Invalid email or password.';
+            alertBox.textContent = json.error || 'Invalid administrator credentials.';
             alertBox.style.display = 'block';
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = '<i data-lucide="log-in" class="icon-16"></i> Sign In to Admin';
@@ -108,13 +159,15 @@
           }
         } catch (err) {
           alertBox.className = 'alert alert-error';
-          alertBox.textContent = 'Network error while attempting to sign in.';
+          alertBox.textContent = 'Network error while attempting to sign in. Please try again.';
           alertBox.style.display = 'block';
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = '<i data-lucide="log-in" class="icon-16"></i> Sign In to Admin';
           if (window.initIcons) window.initIcons();
         }
       });
+
+      if (window.initIcons) window.initIcons();
     });
   </script>
 </body>
