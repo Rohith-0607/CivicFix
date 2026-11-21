@@ -3,12 +3,16 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
 const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
+if (!process.env.VERCEL) {
   try {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    if (!fs.existsSync(UPLOADS_DIR)) {
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    }
   } catch (err) {
-    console.error('Failed to create uploads directory:', err);
+    // Graceful handling for read-only filesystem environments
   }
 }
 
@@ -247,6 +251,9 @@ async function createComplaint(complaintData) {
     }
     return data;
   } else {
+    if (isProduction) {
+      throw new Error('Database is not configured. Real Supabase database connection is required in production.');
+    }
     const newRecord = {
       ...record,
       id: crypto.randomUUID(),
@@ -734,13 +741,21 @@ async function uploadPhoto(buffer, filename, mimeType) {
       if (!error) {
         return safePath;
       }
-      console.warn('[Storage] Supabase storage upload failed, saving locally:', error.message);
+      console.warn('[Storage] Supabase storage upload failed:', error.message);
+      if (isProduction) {
+        throw new Error(`Cloud storage upload failed: ${error.message}`);
+      }
     } catch (sbErr) {
-      console.warn('[Storage] Supabase storage exception, saving locally:', sbErr.message);
+      console.warn('[Storage] Supabase storage exception:', sbErr.message);
+      if (isProduction) {
+        throw new Error(`Cloud storage error: ${sbErr.message}`);
+      }
     }
+  } else if (isProduction) {
+    throw new Error('Supabase Storage is required in production. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
   }
 
-  // Local storage (guarantees uploaded photo is saved to disk and visible in admin portal)
+  // Local storage (only for offline local development demo mode, not production/Vercel)
   try {
     if (!fs.existsSync(UPLOADS_DIR)) {
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -788,10 +803,12 @@ async function getSignedPhotoUrl(photoPath, expiresInSeconds = 300) {
   }
 
   // 4. Check if file exists in local public/uploads directory by basename
-  const baseName = path.basename(normalized);
-  const localCheck = path.join(UPLOADS_DIR, baseName);
-  if (fs.existsSync(localCheck)) {
-    return `/uploads/${baseName}`;
+  if (!process.env.VERCEL) {
+    const baseName = path.basename(normalized);
+    const localCheck = path.join(UPLOADS_DIR, baseName);
+    if (fs.existsSync(localCheck)) {
+      return `/uploads/${baseName}`;
+    }
   }
 
   // 5. Fallback path for client browser
@@ -809,14 +826,16 @@ async function deletePhoto(photoPath) {
     }
   }
 
-  try {
-    const baseName = path.basename(photoPath);
-    const localFilePath = path.join(UPLOADS_DIR, baseName);
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
+  if (!process.env.VERCEL) {
+    try {
+      const baseName = path.basename(photoPath);
+      const localFilePath = path.join(UPLOADS_DIR, baseName);
+      if (fs.existsSync(localFilePath)) {
+        fs.unlinkSync(localFilePath);
+      }
+    } catch (err) {
+      console.error('[Storage] Local delete photo error:', err);
     }
-  } catch (err) {
-    console.error('[Storage] Local delete photo error:', err);
   }
 }
 

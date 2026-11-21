@@ -67,15 +67,19 @@ I designed CivicFix AI as a clean, performant, and dependency-disciplined full-s
 ```text
 civicfix-ai/
 ├── package.json               # Dependencies and scripts (Express, Supabase, Multer)
+├── vercel.json                # Vercel serverless routing, clean URLs & function config
+├── .vercelignore              # Deployment exclusion rules for Vercel builds
 ├── .env.example               # Template for cloud environment configuration
 ├── .gitignore                 # Ignores node_modules, .env, public/uploads
 ├── README.md                  # Project overview, architecture, and evaluation guide
-├── test.js                    # Automated 10-point acceptance verification test suite
+├── test.js                    # Automated 16-point verification & security test suite
+├── api/
+│   └── index.js               # Vercel Serverless Function entry point wrapping Express
 ├── database/
 │   └── schema.sql             # Supabase PostgreSQL table, RLS policies, indexes
 ├── server/
 │   ├── index.js               # Express application entry, security headers, static routes
-│   ├── supabase.js            # Database client, local storage fallback, map coordinates
+│   ├── supabase.js            # Database client, cloud/local storage, map coordinates
 │   ├── ai.js                  # Gemini AI classifier, prompt guardrails, heuristic engine
 │   ├── auth.js                # Server-side admin authentication & session validation
 │   └── routes/
@@ -138,15 +142,65 @@ node server/index.js
 Open your browser to: **`http://localhost:3000`**
 
 ### Step 4: Run the Automated Verification Tests
-I built an automated end-to-end verification test suite in `test.js` covering 10 critical acceptance criteria:
+I built an automated end-to-end verification and regression test suite in `test.js` covering 16 critical acceptance & security audit checks:
 ```bash
 node test.js
 ```
-All 10 tests verify system status, public issue feeds, Telugu AI triage, complaint creation with photo upload, status tracking, admin authentication, admin complaint inspection, and route availability.
+The 16 tests verify system status, public issue feeds, Telugu AI triage, complaint creation with photo upload, status tracking, admin authentication, admin complaint inspection, route availability, negative authentication assertions (401 on unauthorized admin requests), file magic-byte validation (400 on spoofed files), citizen privacy safeguards (omission of landmark & citizen details from public endpoints), coordinate integrity (zero synthetic GPS coords), and full status update workflow.
 
 ---
 
-## 5. Walkthrough: How to Evaluate My Project (Hackathon Demo Script)
+## 5. Deploying to Vercel (Production Setup)
+
+CivicFix AI is fully pre-configured for zero-friction serverless deployment on **Vercel**.
+
+### Step 1: Import the GitHub Repository into Vercel
+1. Log in to [vercel.com](https://vercel.com) and click **Add New...** → **Project**.
+2. Select your imported GitHub repository: `https://github.com/Rohith-0607/CivicFix`.
+3. In the project configuration screen:
+   - **Framework Preset:** `Other` (detected automatically)
+   - **Root Directory:** `./`
+   - **Build Command:** Leave empty
+   - **Output Directory:** Leave empty
+   - **Install Command:** Leave default (`npm install`)
+
+### Step 2: Configure Vercel Environment Variables
+Under the **Environment Variables** section in your Vercel Project Settings, add:
+
+| Variable Name | Required | Description |
+| :--- | :---: | :--- |
+| `NODE_ENV` | **Yes** | Set to `production` (enforces cloud storage & disables demo auth) |
+| `SUPABASE_URL` | **Yes** | Your Supabase Project URL (`https://xyzcompany.supabase.co`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Your Supabase backend service-role secret key (kept strictly server-side) |
+| `SUPABASE_ANON_KEY` | **Yes** | Your Supabase client anonymous public key |
+| `GEMINI_API_KEY` | **Yes** | Your Google Gemini API key for automated multilingual triage |
+| `ADMIN_USER_ID` | Optional | Supabase Auth UUID of the administrator allowed to access the admin portal |
+
+> **Security Note:** Neither `SUPABASE_SERVICE_ROLE_KEY` nor `GEMINI_API_KEY` is ever exposed to client-side browser code. All database and AI calls execute strictly inside the Vercel serverless function (`api/index.js`).
+
+### Step 3: Configure Supabase Database & Storage
+1. In your Supabase Dashboard, open **SQL Editor** and run the contents of `database/schema.sql`.
+2. Under **Storage** in Supabase, ensure a bucket named `complaint-photos` exists. Set it to private or apply standard read policies.
+
+### Step 4: Deploy & Verify
+1. Click **Deploy**. Vercel will build the project and assign a production URL (e.g., `https://civicfix.vercel.app`).
+2. Test the deployed endpoints:
+   - Homepage: `https://your-domain.vercel.app/`
+   - System Status: `https://your-domain.vercel.app/api/system-status`
+   - Reporting: `https://your-domain.vercel.app/report`
+   - Issues Board: `https://your-domain.vercel.app/issues`
+   - Status Tracking: `https://your-domain.vercel.app/track`
+   - Admin Login: `https://your-domain.vercel.app/admin/login`
+
+### Local Vercel Testing
+To test the serverless routing locally using the official Vercel CLI:
+```bash
+npx vercel dev
+```
+
+---
+
+## 6. Walkthrough: How to Evaluate My Project (Hackathon Demo Script)
 
 Here is the exact 5-minute flow I recommend to explore and test what I built:
 
@@ -191,7 +245,7 @@ Here is the exact 5-minute flow I recommend to explore and test what I built:
 
 ---
 
-## 6. How I Designed Responsible AI & Security Guardrails
+## 7. How I Designed Responsible AI & Security Guardrails
 
 When developing the AI integration, I focused heavily on safety and reliability:
 - **Server-Side Isolation:** The Gemini API key is never bundled into frontend assets. All AI analysis requests pass through rate-limited Express endpoints.
@@ -201,7 +255,7 @@ When developing the AI integration, I focused heavily on safety and reliability:
 
 ---
 
-## 7. Future Roadmap
+## 8. Future Roadmap
 
 If I continue expanding CivicFix AI into production:
 1. **WhatsApp & SMS Bot:** Allowing citizens without smartphones to report civic issues via a WhatsApp chatbot or toll-free SMS.

@@ -12,6 +12,9 @@ const { isConfigured } = require('./supabase');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Vercel Edge, Cloudflare) for client IP detection & rate limiting
+app.set('trust proxy', 1);
+
 // Security and CORS middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
@@ -58,7 +61,7 @@ app.get('/api/system-status', (req, res) => {
     data: {
       supabaseConnected: isConfigured,
       geminiConfigured: Boolean(process.env.GEMINI_API_KEY && !process.env.GEMINI_API_KEY.includes('your_gemini')),
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || (process.env.VERCEL ? 'production' : 'development'),
     },
   });
 });
@@ -66,8 +69,14 @@ app.get('/api/system-status', (req, res) => {
 // Serve static assets from public/ and uploads/
 const publicDir = path.join(__dirname, '..', 'public');
 const uploadsDir = path.join(publicDir, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!process.env.VERCEL) {
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  } catch (err) {
+    // Graceful handling for read-only environments
+  }
 }
 
 app.use('/uploads', express.static(uploadsDir));
@@ -101,7 +110,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-if (require.main === module) {
+if (require.main === module && !process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(` CivicFix AI Server running on http://localhost:${PORT}`);

@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { supabase, isConfigured } = require('./supabase');
 
 // Strict environment separation: demo authentication is strictly disabled in production
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 const isDemoAllowed = !isProduction;
 
 // Dynamic cryptographically secure session token generated per server boot
