@@ -54,8 +54,26 @@ app.use('/api/track', publicTrackLimiter);
 app.use('/api', publicRoutes);
 app.use('/api/admin', adminRoutes);
 
+// API root info endpoint
+app.get('/api', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CivicFix AI API is running',
+    version: '1.0.0',
+    endpoints: {
+      systemStatus: '/api/system-status',
+      issues: '/api/issues',
+      analyze: '/api/analyze',
+      complaints: '/api/complaints',
+      track: '/api/track/:code',
+      adminLogin: '/api/admin/login',
+      adminSummary: '/api/admin/summary',
+    },
+  });
+});
+
 // Config status endpoint for frontend banner
-app.get('/api/system-status', (req, res) => {
+app.get(['/api/system-status', '/system-status'], (req, res) => {
   res.json({
     success: true,
     data: {
@@ -94,10 +112,10 @@ app.get('/admin/locations', (req, res) => res.sendFile(path.join(publicDir, 'adm
 
 // 404 handler for unknown routes
 app.use((req, res) => {
-  if (req.accepts('html')) {
-    return res.status(404).sendFile(path.join(publicDir, 'index.html'));
+  if (req.path.startsWith('/api') || !req.accepts('html')) {
+    return res.status(404).json({ success: false, error: `Endpoint not found: ${req.method} ${req.originalUrl || req.url}` });
   }
-  res.status(404).json({ success: false, error: 'Endpoint not found.' });
+  return res.status(404).sendFile(path.join(publicDir, 'index.html'));
 });
 
 // Centralized error handler
