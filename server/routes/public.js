@@ -198,13 +198,13 @@ router.get('/issues', async (req, res) => {
 });
 
 /**
- * GET /api/track/:code
- * Public tracking endpoint
+ * GET /api/track/:code or GET /api/track?code=...
+ * Public tracking endpoint supporting path parameter and query parameter
  */
-router.get('/track/:code', async (req, res) => {
+router.get(['/track/:code', '/track'], async (req, res) => {
   try {
-    const code = req.params.code;
-    if (!code || code.trim().length < 3) {
+    const code = req.params.code || req.query.code;
+    if (!code || typeof code !== 'string' || code.trim().length < 3) {
       return res.status(400).json({
         success: false,
         error: 'Please enter a valid tracking code.',

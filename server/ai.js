@@ -160,6 +160,54 @@ function sanitizeAiOutput(raw, originalDescription) {
 }
 
 /**
+ * Cached active Gemini model discovered from the API to avoid repeated 404s
+ */
+let cachedWorkingModel = null;
+
+/**
+ * Discover the best available Gemini model supporting generateContent for this API key
+ */
+async function discoverAvailableModel(apiKey) {
+  if (cachedWorkingModel) return cachedWorkingModel;
+
+  try {
+    const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(listUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const models = data.models || [];
+      const contentModels = models.filter((m) =>
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('generateContent')
+      );
+
+      // Prefer gemini-3.8-flash or any flash model
+      const preferred = contentModels.find((m) => m.name.includes('gemini-3.8-flash'))
+        || contentModels.find((m) => m.name.includes('flash'))
+        || contentModels[0];
+
+      if (preferred) {
+        // Strip 'models/' prefix if present
+        const chosen = preferred.name.replace(/^models\//, '');
+        console.log(`[AI] Discovered available Gemini model: ${chosen}`);
+        cachedWorkingModel = chosen;
+        return chosen;
+      }
+    }
+  } catch (err) {
+    console.warn('[AI] Model discovery query failed:', err.message);
+  }
+
+  // Fallback to recommended gemini-3.8-flash
+  return 'gemini-3.8-flash';
+}
+
+/**
  * Call Gemini API with structured JSON output instructions
  */
 async function analyzeComplaint(description, locationArea) {
@@ -179,8 +227,9 @@ async function analyzeComplaint(description, locationArea) {
     return heuristicFallback(description, locationArea);
   }
 
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  // Google specifically requested gemini-3.8-flash; allow GEMINI_MODEL env override
+  const primaryModel = process.env.GEMINI_MODEL || cachedWorkingModel || 'gemini-3.8-flash';
+  const modelsToTry = [primaryModel];
 
   const systemPrompt = `You are CivicFix AI, an automated civic complaint categorization engine for Indian cities.
 You analyze civic complaints reported by citizens in English or Telugu.
@@ -195,64 +244,75 @@ Return pure JSON without markdown code fences.`;
 
   const userContent = `Reported Area: ${locationArea || 'Not specified'}\nComplaint Description: ${description}`;
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const model = modelsToTry[i];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: systemPrompt },
-              { text: userContent },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn(`[AI] Gemini API returned error ${response.status}:`, errText);
-      return heuristicFallback(description, locationArea);
-    }
-
-    const json = await response.json();
-    const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!rawText) {
-      console.warn('[AI] Empty response from Gemini API');
-      return heuristicFallback(description, locationArea);
-    }
-
-    // Parse JSON
-    let parsed;
     try {
-      parsed = JSON.parse(rawText.trim());
-    } catch {
-      // In case wrapped in markdown code fence
-      const clean = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      parsed = JSON.parse(clean);
-    }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    return sanitizeAiOutput(parsed, description);
-  } catch (err) {
-    console.error('[AI] Gemini API call failed:', err.message);
-    return heuristicFallback(description, locationArea);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: systemPrompt },
+                { text: userContent },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+          },
+        }),
+      });
+
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const json = await response.json();
+        const rawText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (rawText) {
+          let parsed;
+          try {
+            parsed = JSON.parse(rawText.trim());
+          } catch {
+            const clean = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(clean);
+          }
+          cachedWorkingModel = model;
+          return sanitizeAiOutput(parsed, description);
+        }
+      } else {
+        const errText = await response.text();
+        console.warn(`[AI] Model ${model} returned error ${response.status}:`, errText);
+
+        // If 404 (model not found/deprecated), attempt discovery if not already done
+        if (response.status === 404 && i === modelsToTry.length - 1 && !cachedWorkingModel) {
+          const discovered = await discoverAvailableModel(apiKey);
+          if (discovered && !modelsToTry.includes(discovered)) {
+            modelsToTry.push(discovered);
+            continue;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[AI] Gemini API attempt with model ${model} failed:`, err.message);
+    }
   }
+
+  // Graceful local heuristic fallback if external API is unreachable or all models failed
+  console.warn('[AI] Using local heuristic classifier fallback.');
+  return heuristicFallback(description, locationArea);
 }
 
 module.exports = {

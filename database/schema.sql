@@ -16,6 +16,8 @@ create table if not exists complaints (
   landmark text,
   reporter_name text,
   photo_path text,
+  latitude double precision,
+  longitude double precision,
   category text not null check (category in ('Road Damage', 'Garbage', 'Water Leakage', 'Streetlights', 'Drainage', 'Other', 'Unclassified')),
   priority text not null check (priority in ('Low', 'Medium', 'High', 'Needs review')),
   suggested_department text,
@@ -53,6 +55,11 @@ execute function update_updated_at_column();
 -- Deny direct anonymous database writes and reads from the browser client;
 -- All access is mediated by the Node/Express backend using the Supabase Service Role Key.
 alter table complaints enable row level security;
+
+-- Explicit table permissions granted strictly to the backend service_role
+-- (Anon and public roles remain blocked by RLS)
+grant usage on schema public to service_role;
+grant select, insert, update, delete on table public.complaints to service_role;
 
 -- Storage Bucket Setup for Private Complaint Evidence Photos
 -- Run in Supabase SQL Editor:

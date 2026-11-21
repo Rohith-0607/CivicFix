@@ -38,10 +38,32 @@ document.addEventListener('DOMContentLoaded', () => {
     btnLookup.textContent = 'Searching...';
 
     try {
-      const res = await fetch(`/api/track/${encodeURIComponent(code)}`);
-      const json = await res.json();
+      // 1. Try path route first (/api/track/:code)
+      let res = await fetch(`/api/track/${encodeURIComponent(code)}`);
 
-      if (res.ok && json.success && json.data) {
+      // 2. If edge router returned 404 text or unsupported subpath, try query endpoint (/api/track?code=...)
+      if (!res.ok && res.status === 404) {
+        const queryRes = await fetch(`/api/track?code=${encodeURIComponent(code)}`);
+        if (queryRes.ok) {
+          res = queryRes;
+        }
+      }
+
+      // 3. Safe JSON parsing (handles plain-text edge 404 gracefully without throwing SyntaxError)
+      let json = null;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        json = await res.json();
+      } else {
+        const text = await res.text();
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = null;
+        }
+      }
+
+      if (res.ok && json && json.success && json.data) {
         const d = json.data;
         resultCode.textContent = d.tracking_code;
         resultCategory.textContent = d.category || 'Unclassified';
@@ -70,12 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const newUrl = `${window.location.pathname}?code=${encodeURIComponent(code)}`;
         window.history.replaceState({ path: newUrl }, '', newUrl);
       } else {
-        const errorMsg = json.error || getTranslation('errNotFound');
+        const errorMsg = (json && json.error) || getTranslation('errNotFound') || `Complaint ${code} not found.`;
         showAlert(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Tracking lookup error:', err);
-      showAlert('Network error occurred while fetching complaint status.', 'error');
+      showAlert('Unable to reach server. Please check your network connection.', 'error');
     } finally {
       btnLookup.disabled = false;
       btnLookup.textContent = getTranslation('btnLookup');
