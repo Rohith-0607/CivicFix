@@ -11,9 +11,9 @@
     { "source": "/report", "destination": "/report.html" },
     { "source": "/issues", "destination": "/issues.html" },
     { "source": "/track", "destination": "/track.html" },
-    { "source": "/admin/login", "destination": "/admin-login.html" },
-    { "source": "/admin/complaints", "destination": "/admin.html" },
-    { "source": "/admin/locations", "destination": "/admin.html" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin/login", "destination": "/admin/login.html" },
+    { "source": "/admin/complaints", "destination": "/admin/complaints.html" },
+    { "source": "/admin/locations", "destination": "/admin/locations.html" },
+    { "source": "/admin", "destination": "/admin/index.html" }
   ]
 }
