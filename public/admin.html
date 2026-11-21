@@ -273,6 +273,32 @@
         </div>
 
         <!-- Filter Bar -->
+        <!-- Demo View Switcher (Only visible in Demo Mode) -->
+        <div id="demoViewSwitcher" style="display: none; background: #F8FAFC; border: 1px solid var(--color-border); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--color-dark-teal); text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 5px;">
+              <i data-lucide="layers" class="icon-14"></i> Data View:
+            </span>
+            <div style="display: inline-flex; background: #E2E8F0; padding: 3px; border-radius: 6px; gap: 3px;">
+              <button type="button" id="btnViewSampleSandbox" class="btn btn-sm" style="font-size: 12px; padding: 5px 12px; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; background: white; color: var(--color-dark-teal); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                🧪 Sample Sandbox (12)
+              </button>
+              <button type="button" id="btnViewLiveFeed" class="btn btn-sm" style="font-size: 12px; padding: 5px 12px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; background: transparent; color: var(--color-text-muted);">
+                📡 Live Public Complaints
+              </button>
+            </div>
+            <span id="demoViewBadgeDesc" style="font-size: 12px; color: var(--color-text-muted); margin-left: 2px;">
+              Interactive fictional complaints with status updates & triage.
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="btnRefreshLiveComplaints" class="btn btn-secondary btn-sm" style="display: none; font-size: 12px; padding: 5px 12px; align-items: center; gap: 6px; border-color: var(--color-teal); color: var(--color-dark-teal); font-weight: 600; background: white;">
+              <i data-lucide="refresh-cw" class="icon-14"></i> Refresh Live Feed
+            </button>
+          </div>
+        </div>
+
         <div class="card" style="padding: 12px 16px; margin-bottom: 16px;">
           <form id="adminFilterForm" class="filter-bar" onsubmit="return false;">
             <div style="flex: 2; min-width: 220px;">
@@ -805,6 +831,14 @@
       </div>
 
       <div id="modalAlert" style="display: none;"></div>
+
+      <!-- Read-Only Notice for Live Public Complaints in Demo Mode -->
+      <div id="modalLiveDemoNotice" class="alert alert-info" style="display: none; margin-bottom: 14px; font-size: 12px; line-height: 1.4; padding: 10px 12px; border-left: 4px solid var(--color-teal);">
+        <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--color-dark-teal); margin-bottom: 2px;">
+          <i data-lucide="shield" class="icon-14"></i> Live Public Complaint (Read-Only)
+        </div>
+        This is a real citizen submission from Supabase displayed via the safe public issues feed. Status modifications on live complaints are disabled in Demo Mode to protect production integrity. Authenticate with real municipal credentials to triage live reports.
+      </div>
 
       <div class="grid-two-col" style="margin-bottom: 16px; font-size: 13px;">
         <div>

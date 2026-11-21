@@ -44,15 +44,82 @@ document.addEventListener('DOMContentLoaded', () => {
   const isDemoMode = localStorage.getItem('civicfix_admin_demo') === 'true' ||
                      token === 'demo_judge_session_active';
 
+  let demoViewMode = 'sandbox'; // 'sandbox' (12 sample complaints) | 'live' (real public feed)
+  let livePublicComplaints = [];
+  let isCurrentComplaintLive = false;
+
   // Visual banner and labels when Demo Mode is active
   if (isDemoMode) {
     const demoBanner = document.getElementById('demoModeBanner');
     if (demoBanner) demoBanner.style.display = 'flex';
 
+    const demoViewSwitcher = document.getElementById('demoViewSwitcher');
+    if (demoViewSwitcher) demoViewSwitcher.style.display = 'flex';
+
     document.querySelectorAll('#adminUserEmail').forEach((el) => {
       el.textContent = 'admin@civicfix.demo (Judge Demo)';
       el.title = 'Interactive Evaluation Sandbox Mode';
     });
+
+    const btnViewSampleSandbox = document.getElementById('btnViewSampleSandbox');
+    const btnViewLiveFeed = document.getElementById('btnViewLiveFeed');
+    const btnRefreshLiveComplaints = document.getElementById('btnRefreshLiveComplaints');
+    const demoViewBadgeDesc = document.getElementById('demoViewBadgeDesc');
+
+    function setDemoView(mode) {
+      demoViewMode = mode;
+      if (mode === 'sandbox') {
+        if (btnViewSampleSandbox) {
+          btnViewSampleSandbox.style.background = 'white';
+          btnViewSampleSandbox.style.color = 'var(--color-dark-teal)';
+          btnViewSampleSandbox.style.fontWeight = '700';
+          btnViewSampleSandbox.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        }
+        if (btnViewLiveFeed) {
+          btnViewLiveFeed.style.background = 'transparent';
+          btnViewLiveFeed.style.color = 'var(--color-text-muted)';
+          btnViewLiveFeed.style.fontWeight = '600';
+          btnViewLiveFeed.style.boxShadow = 'none';
+        }
+        if (btnRefreshLiveComplaints) btnRefreshLiveComplaints.style.display = 'none';
+        if (demoViewBadgeDesc) demoViewBadgeDesc.textContent = 'Interactive fictional complaints with status updates & triage.';
+      } else {
+        if (btnViewLiveFeed) {
+          btnViewLiveFeed.style.background = 'white';
+          btnViewLiveFeed.style.color = 'var(--color-dark-teal)';
+          btnViewLiveFeed.style.fontWeight = '700';
+          btnViewLiveFeed.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        }
+        if (btnViewSampleSandbox) {
+          btnViewSampleSandbox.style.background = 'transparent';
+          btnViewSampleSandbox.style.color = 'var(--color-text-muted)';
+          btnViewSampleSandbox.style.fontWeight = '600';
+          btnViewSampleSandbox.style.boxShadow = 'none';
+        }
+        if (btnRefreshLiveComplaints) btnRefreshLiveComplaints.style.display = 'inline-flex';
+        if (demoViewBadgeDesc) demoViewBadgeDesc.textContent = 'Real citizen submissions loaded via safe public API (Read-only).';
+      }
+      loadComplaints(1);
+    }
+
+    if (btnViewSampleSandbox) {
+      btnViewSampleSandbox.addEventListener('click', () => setDemoView('sandbox'));
+    }
+    if (btnViewLiveFeed) {
+      btnViewLiveFeed.addEventListener('click', () => setDemoView('live'));
+    }
+    if (btnRefreshLiveComplaints) {
+      btnRefreshLiveComplaints.addEventListener('click', () => {
+        btnRefreshLiveComplaints.disabled = true;
+        btnRefreshLiveComplaints.innerHTML = '<i data-lucide="loader" class="icon-14 spin"></i> Refreshing...';
+        if (window.initIcons) window.initIcons();
+        loadComplaints(currentPage).finally(() => {
+          btnRefreshLiveComplaints.disabled = false;
+          btnRefreshLiveComplaints.innerHTML = '<i data-lucide="refresh-cw" class="icon-14"></i> Refresh Live Feed';
+          if (window.initIcons) window.initIcons();
+        });
+      });
+    }
 
     const resetBtn = document.getElementById('btnResetDemoData');
     if (resetBtn) {
@@ -1124,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadComplaints(page = 1) {
     currentPage = page;
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--color-text-muted);">Loading complaints from database...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 24px; color: var(--color-text-muted);">Loading complaints...</td></tr>`;
     }
 
     const params = new URLSearchParams({ page, limit: 15 });
@@ -1135,12 +1202,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = searchInput ? searchInput.value.trim() : '';
     if (q) params.append('search', q);
 
+    // If demo mode AND live feed is selected: load from safe public GET /api/issues
+    if (isDemoMode && demoViewMode === 'live') {
+      try {
+        const res = await fetch(`/api/issues?${params.toString()}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const issues = json.data.issues || [];
+          livePublicComplaints = issues;
+          renderComplaintsTable(issues, true);
+          renderPagination(json.data.pagination || { page, limit: 15, totalCount: issues.length, totalPages: 1 });
+        } else {
+          if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #DC2626; padding: 24px;">Failed to load live public complaints.</td></tr>`;
+        }
+      } catch (err) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #DC2626; padding: 24px;">Network error loading live complaints.</td></tr>`;
+      }
+      return;
+    }
+
+    // Default: Sandbox mode in demo, or real adminFetch for authenticated admins
     try {
       const res = await adminFetch(`/api/admin/complaints?${params.toString()}`);
       const json = await res.json();
 
       if (json.success && json.data) {
-        renderComplaintsTable(json.data.complaints);
+        renderComplaintsTable(json.data.complaints, false);
         renderPagination(json.data.pagination);
       } else {
         if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #DC2626; padding: 24px;">Failed to load data.</td></tr>`;
@@ -1150,7 +1238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderComplaintsTable(complaints) {
+  function renderComplaintsTable(complaints, isLive = false) {
     if (!tbody) return;
     if (!complaints || complaints.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: 24px;">No complaints match the criteria.</td></tr>`;
@@ -1178,12 +1266,19 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<span class="badge" title="Citizen uploaded photo evidence" style="background-color: #E0F2FE; color: #0284C7; border: 1px solid #BAE6FD; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;">📷 Photo</span>`
           : '';
 
+        const liveBadge = isLive
+          ? `<span class="badge" title="Live citizen submission via public portal" style="background-color: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">📡 Live Citizen</span>`
+          : '';
+
+        const identifier = isLive ? item.tracking_code : item.id;
+
         return `
           <tr>
             <td>
               <div style="display: inline-flex; align-items: center; flex-wrap: wrap;">
                 <code class="mono" style="font-weight: 700; color: var(--color-green);">${escapeHtml(item.tracking_code)}</code>
                 ${photoBadge}
+                ${liveBadge}
               </div>
             </td>
             <td><strong>${escapeHtml(item.location_area)}</strong></td>
@@ -1193,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td><span class="badge ${statusBadge}">${escapeHtml(item.status)}</span></td>
             <td style="font-size: 12px; color: var(--color-text-muted); white-space: nowrap;">${formatDate(item.created_at)}</td>
             <td>
-              <button type="button" class="btn btn-secondary btn-sm btn-open-modal" data-id="${escapeHtml(item.id)}">Review</button>
+              <button type="button" class="btn btn-secondary btn-sm btn-open-modal" data-id="${escapeHtml(identifier)}" data-live="${isLive ? 'true' : 'false'}">Review</button>
             </td>
           </tr>
         `;
@@ -1203,7 +1298,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-open-modal').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        openComplaintModal(id);
+        const isLive = btn.getAttribute('data-live') === 'true';
+        openComplaintModal(id, isLive);
       });
     });
   }
@@ -1273,9 +1369,78 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalAlert = document.getElementById('modalAlert');
   const btnSaveComplaint = document.getElementById('btnSaveComplaint');
 
-  async function openComplaintModal(id) {
+  async function openComplaintModal(id, isLive = false) {
     currentComplaintId = id;
     if (modalAlert) modalAlert.style.display = 'none';
+    const liveNotice = document.getElementById('modalLiveDemoNotice');
+
+    // Case 1: Live Public Feed in Demo Mode (Read-Only)
+    if (isLive || (isDemoMode && demoViewMode === 'live')) {
+      isCurrentComplaintLive = true;
+      const found = livePublicComplaints.find((c) => c.tracking_code === id || c.id === id);
+      if (!found) {
+        alert('Complaint details could not be found in live public feed.');
+        return;
+      }
+
+      if (modalTrackingCode) modalTrackingCode.textContent = found.tracking_code;
+      if (modalArea) modalArea.textContent = found.location_area || 'Hyderabad';
+      if (modalLandmark) modalLandmark.textContent = 'Protected (Omitted in public feed)';
+      if (modalReporter) modalReporter.textContent = 'Anonymous Citizen';
+      if (modalDate) modalDate.textContent = formatDate(found.created_at);
+      if (modalDescription) modalDescription.textContent = found.english_summary || 'Citizen reported civic issue';
+
+      // Photos strictly omitted in public feed
+      if (modalPhotoSection) modalPhotoSection.style.display = 'none';
+
+      if (modalAiReason) modalAiReason.textContent = `Reported anonymously via public portal. Classified under ${found.category} with ${found.priority} priority.`;
+      if (modalAiSummary) modalAiSummary.textContent = found.english_summary || 'Civic issue report';
+
+      // Disable editing controls for live public complaints in demo mode
+      if (modalStatusSelect) {
+        modalStatusSelect.value = found.status || 'Pending';
+        modalStatusSelect.disabled = true;
+      }
+      if (modalPrioritySelect) {
+        modalPrioritySelect.value = found.priority || 'Medium';
+        modalPrioritySelect.disabled = true;
+      }
+      if (modalCategorySelect) {
+        modalCategorySelect.value = found.category || 'Unclassified';
+        modalCategorySelect.disabled = true;
+      }
+      if (modalDeptInput) {
+        modalDeptInput.value = found.category || '';
+        modalDeptInput.disabled = true;
+      }
+      if (modalAdminNote) {
+        modalAdminNote.value = '';
+        modalAdminNote.placeholder = 'Internal administrative notes are protected in public view.';
+        modalAdminNote.disabled = true;
+      }
+
+      if (btnSaveComplaint) btnSaveComplaint.style.display = 'none';
+      if (liveNotice) liveNotice.style.display = 'block';
+
+      if (modal) modal.style.display = 'flex';
+      return;
+    }
+
+    // Case 2: Interactive Sandbox or Real Authenticated Admin
+    isCurrentComplaintLive = false;
+    if (liveNotice) liveNotice.style.display = 'none';
+    if (btnSaveComplaint) {
+      btnSaveComplaint.style.display = 'inline-block';
+      btnSaveComplaint.disabled = false;
+    }
+    if (modalStatusSelect) modalStatusSelect.disabled = false;
+    if (modalPrioritySelect) modalPrioritySelect.disabled = false;
+    if (modalCategorySelect) modalCategorySelect.disabled = false;
+    if (modalDeptInput) modalDeptInput.disabled = false;
+    if (modalAdminNote) {
+      modalAdminNote.disabled = false;
+      modalAdminNote.placeholder = 'Record actions taken by field team...';
+    }
 
     try {
       const res = await adminFetch(`/api/admin/complaints/${encodeURIComponent(id)}`);
@@ -1324,6 +1489,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal() {
     if (modal) modal.style.display = 'none';
     currentComplaintId = null;
+    isCurrentComplaintLive = false;
   }
 
   if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
@@ -1333,6 +1499,14 @@ document.addEventListener('DOMContentLoaded', () => {
     modalUpdateForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentComplaintId) return;
+
+      // Guard: Never allow status updates on live complaints in demo mode
+      if (isCurrentComplaintLive) {
+        modalAlert.className = 'alert alert-error';
+        modalAlert.textContent = 'Status updates on live citizen complaints are disabled in Demo Mode to protect production data.';
+        modalAlert.style.display = 'block';
+        return;
+      }
 
       btnSaveComplaint.disabled = true;
       btnSaveComplaint.textContent = 'Saving...';

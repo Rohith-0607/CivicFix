@@ -254,7 +254,91 @@ const server = app.listen(0, '127.0.0.1', async () => {
     }
     console.log(`✓ 20. Privacy: Public tracking strictly omits private photo URL, reporter_name, landmark, and admin_note`);
 
-    console.log('\n>>> ALL 20 ANONYMOUS REPORTING & ADMIN SECURITY TESTS PASSED SUCCESSFULLY! <<<\n');
+    // 21. Live Public Complaints Feed Verification (Citizen submission visible via safe public issues API)
+    const newCitizenReport = await fetch(`${base}/api/complaints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: 'Overflowing municipal dustbin on main market road causing foul smell and stray animal menace.',
+        location_area: 'Secunderabad, Hyderabad',
+        landmark: 'Near Clock Tower',
+        reporter_name: 'Rajesh Kumar',
+        category: 'Garbage',
+        priority: 'High',
+      }),
+    });
+    const jNewCitizen = await newCitizenReport.json();
+    if (!jNewCitizen.success || !jNewCitizen.data?.tracking_code) {
+      throw new Error(`Citizen report submission failed: ${JSON.stringify(jNewCitizen)}`);
+    }
+    const citizenTrackingCode = jNewCitizen.data.tracking_code;
+
+    // Fetch from safe public issues feed (the endpoint powering Live Public Complaints view)
+    const rPublicFeed = await fetch(`${base}/api/issues?search=${citizenTrackingCode}`);
+    const jPublicFeed = await rPublicFeed.json();
+    const foundInFeed = (jPublicFeed.data?.issues || []).find(i => i.tracking_code === citizenTrackingCode);
+    if (!foundInFeed) {
+      throw new Error(`Newly submitted complaint ${citizenTrackingCode} not found in public issues feed!`);
+    }
+    if (foundInFeed.reporter_name || foundInFeed.landmark || foundInFeed.admin_note || foundInFeed.photo_path) {
+      throw new Error(`Sensitive fields exposed in live public feed: ${JSON.stringify(foundInFeed)}`);
+    }
+    console.log(`✓ 21. Live Public Feed: Newly submitted complaint "${citizenTrackingCode}" appears in public feed with sensitive fields strictly omitted`);
+
+    // 22. Security: Anonymous/Demo sessions strictly prohibited from updating real complaint status
+    const rUnauthorizedPatch = await fetch(`${base}/api/admin/complaints/${citizenTrackingCode}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer demo_judge_session_active',
+      },
+      body: JSON.stringify({ status: 'Resolved' }),
+    });
+    if (rUnauthorizedPatch.status !== 401) {
+      throw new Error(`Expected 401 for unauthorized status patch, got ${rUnauthorizedPatch.status}`);
+    }
+    console.log(`✓ 22. Security: Anonymous/Demo users strictly rejected (HTTP 401) when attempting to change real complaint status`);
+
+    // 23. Sample Sandbox: Interactive status updates work in demo store without modifying real database
+    const fs = require('fs');
+    const path = require('path');
+    const vm = require('vm');
+    const adminJsCode = fs.readFileSync(path.join(__dirname, 'public/js/admin.js'), 'utf8');
+    // Extract DemoStore definition from admin.js
+    const storeMatch = adminJsCode.match(/const DemoStore = \{[\s\S]*?\n  \};/);
+    if (!storeMatch) {
+      throw new Error('DemoStore definition not found in public/js/admin.js');
+    }
+    const mockStorage = {};
+    const sandboxContext = {
+      localStorage: {
+        getItem: (k) => mockStorage[k] || null,
+        setItem: (k, v) => { mockStorage[k] = String(v); },
+        removeItem: (k) => { delete mockStorage[k]; },
+      },
+      URL: globalThis.URL,
+      console,
+    };
+    vm.createContext(sandboxContext);
+    const demoStore = vm.runInContext('(' + storeMatch[0].replace(/^const DemoStore\s*=\s*/, '').replace(/;\s*$/, '') + ')', sandboxContext);
+    const initialList = demoStore.load();
+    if (initialList.length !== 12) {
+      throw new Error(`Expected 12 sample complaints in DemoStore, got ${initialList.length}`);
+    }
+    const patchRes = demoStore.handle('/api/admin/complaints/CF-3821', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'Resolved', admin_note: 'Tested in judge demo sandbox' }),
+    });
+    if (!patchRes.success || patchRes.data.status !== 'Resolved') {
+      throw new Error(`DemoStore PATCH failed: ${JSON.stringify(patchRes)}`);
+    }
+    const updatedSample = demoStore.load().find(c => c.tracking_code === 'CF-3821');
+    if (!updatedSample || updatedSample.status !== 'Resolved' || updatedSample.admin_note !== 'Tested in judge demo sandbox') {
+      throw new Error(`DemoStore persistence failed: ${JSON.stringify(updatedSample)}`);
+    }
+    console.log(`✓ 23. Sample Sandbox: Interactive triage and status updates verified on 12 sample complaints (Live DB unaffected)`);
+
+    console.log('\n>>> ALL 23 ANONYMOUS REPORTING, LIVE PUBLIC FEED & DEMO ISOLATION TESTS PASSED! <<<\n');
   } catch (err) {
     console.error('❌ Test failed:', err);
     process.exitCode = 1;

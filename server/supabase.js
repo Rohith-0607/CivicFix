@@ -328,7 +328,7 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
     }
     if (search && search.trim()) {
       const s = `%${search.trim()}%`;
-      query = query.or(`location_area.ilike.${s},english_summary.ilike.${s}`);
+      query = query.or(`tracking_code.ilike.${s},location_area.ilike.${s},english_summary.ilike.${s}`);
     }
 
     const { data, count, error } = await query.range(from, to);
@@ -358,7 +358,8 @@ async function getPublicIssues({ page = 1, limit = 15, category, status, search 
       const q = search.trim().toLowerCase();
       filtered = filtered.filter(
         (c) =>
-          c.location_area.toLowerCase().includes(q) ||
+          (c.tracking_code && c.tracking_code.toLowerCase().includes(q)) ||
+          (c.location_area && c.location_area.toLowerCase().includes(q)) ||
           (c.english_summary && c.english_summary.toLowerCase().includes(q))
       );
     }
