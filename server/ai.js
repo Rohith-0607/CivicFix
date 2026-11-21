@@ -125,13 +125,14 @@ function heuristicFallback(description, locationArea) {
     department,
     reason,
     english_summary: englishSummary,
+    source: 'heuristic',
   };
 }
 
 /**
  * Validate and clean the AI response object against strict schema
  */
-function sanitizeAiOutput(raw, originalDescription) {
+function sanitizeAiOutput(raw, originalDescription, engine = 'gemini') {
   if (!raw || typeof raw !== 'object') {
     return heuristicFallback(originalDescription);
   }
@@ -156,6 +157,7 @@ function sanitizeAiOutput(raw, originalDescription) {
     department,
     reason,
     english_summary,
+    source: engine,
   };
 }
 
@@ -186,25 +188,29 @@ async function discoverAvailableModel(apiKey) {
         m.supportedGenerationMethods.includes('generateContent')
       );
 
-      // Prefer gemini-3.8-flash or any flash model
-      const preferred = contentModels.find((m) => m.name.includes('gemini-3.8-flash'))
-        || contentModels.find((m) => m.name.includes('flash'))
+      // Prioritize fast, high-rate-limit flash models that explicitly support generateContent
+      const preferred = contentModels.find((m) => m.name.endsWith('/gemini-2.0-flash') || m.name === 'models/gemini-2.0-flash')
+        || contentModels.find((m) => m.name.endsWith('/gemini-1.5-flash') || m.name === 'models/gemini-1.5-flash')
+        || contentModels.find((m) => m.name.includes('flash') && !m.name.includes('experimental'))
         || contentModels[0];
 
       if (preferred) {
         // Strip 'models/' prefix if present
         const chosen = preferred.name.replace(/^models\//, '');
-        console.log(`[AI] Discovered available Gemini model: ${chosen}`);
+        console.log(`[AI] Verified available Gemini model supporting generateContent: ${chosen}`);
         cachedWorkingModel = chosen;
         return chosen;
       }
+    } else {
+      const errText = await res.text();
+      console.warn(`[AI] ListModels returned HTTP ${res.status}:`, errText);
     }
   } catch (err) {
     console.warn('[AI] Model discovery query failed:', err.message);
   }
 
-  // Fallback to recommended gemini-3.8-flash
-  return 'gemini-3.8-flash';
+  // Safe fallback to standard Gemini 1.5 Flash
+  return 'gemini-1.5-flash';
 }
 
 /**
@@ -227,9 +233,15 @@ async function analyzeComplaint(description, locationArea) {
     return heuristicFallback(description, locationArea);
   }
 
-  // Google specifically requested gemini-3.8-flash; allow GEMINI_MODEL env override
-  const primaryModel = process.env.GEMINI_MODEL || cachedWorkingModel || 'gemini-3.8-flash';
+  // Discover verified model from Google ListModels API or use environment override
+  let primaryModel = process.env.GEMINI_MODEL || cachedWorkingModel;
+  if (!primaryModel) {
+    primaryModel = await discoverAvailableModel(apiKey);
+  }
+
   const modelsToTry = [primaryModel];
+  if (!modelsToTry.includes('gemini-1.5-flash')) modelsToTry.push('gemini-1.5-flash');
+  if (!modelsToTry.includes('gemini-2.0-flash')) modelsToTry.push('gemini-2.0-flash');
 
   const systemPrompt = `You are CivicFix AI, an automated civic complaint categorization engine for Indian cities.
 You analyze civic complaints reported by citizens in English or Telugu.
@@ -290,7 +302,7 @@ Return pure JSON without markdown code fences.`;
             parsed = JSON.parse(clean);
           }
           cachedWorkingModel = model;
-          return sanitizeAiOutput(parsed, description);
+          return sanitizeAiOutput(parsed, description, 'gemini');
         }
       } else {
         const errText = await response.text();

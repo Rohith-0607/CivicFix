@@ -139,20 +139,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const aiInlineFeedback = document.getElementById('aiInlineFeedback');
+  const aiInlineCategory = document.getElementById('aiInlineCategory');
+  const aiInlinePriority = document.getElementById('aiInlinePriority');
+  const aiInlineReason = document.getElementById('aiInlineReason');
+
   // Trigger AI Analysis
   if (btnAnalyzeAI) {
     btnAnalyzeAI.addEventListener('click', async () => {
-      const desc = descInput.value.trim();
-      const area = areaInput.value.trim();
+      const desc = descInput ? descInput.value.trim() : '';
+      const area = areaInput ? areaInput.value.trim() : '';
 
       if (desc.length < 15) {
-        showAlert('Please enter at least 15 characters in the description before requesting AI analysis.', 'warning');
-        descInput.focus();
+        showAlert('Please enter at least 15 characters describing the issue before analyzing with AI.', 'warning');
+        if (descInput) descInput.focus();
         return;
       }
 
       btnAnalyzeAI.disabled = true;
-      analyzeBtnText.textContent = getTranslation('analyzingText');
+      if (analyzeBtnText) analyzeBtnText.textContent = 'Analyzing...';
       hideAlert();
 
       try {
@@ -164,27 +169,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const json = await res.json();
 
-        if (json.success && json.data) {
+        if (res.ok && json.success && json.data) {
           const d = json.data;
-          if (aiCategory) aiCategory.value = d.category || 'Unclassified';
-          if (aiPriority) aiPriority.value = d.priority || 'Needs review';
-          if (aiDepartment) aiDepartment.value = d.department || 'Roads & Infrastructure';
-          if (aiReason) aiReason.value = d.reason || '';
-          if (aiReasonText) aiReasonText.textContent = d.reason || 'Categorized by AI analysis.';
-          if (aiEnglishSummary) aiEnglishSummary.value = d.english_summary || desc.slice(0, 150);
+          const categoryVal = d.category || 'Unclassified';
+          const priorityVal = d.priority || 'Needs review';
+          const departmentVal = d.department || 'Roads & Infrastructure';
+          const reasonVal = d.reason || 'Categorized by automated analysis.';
+          const summaryVal = d.english_summary || desc.slice(0, 150);
 
+          // Update right-hand panel inputs
+          if (aiCategory) aiCategory.value = categoryVal;
+          if (aiPriority) aiPriority.value = priorityVal;
+          if (aiDepartment) aiDepartment.value = departmentVal;
+          if (aiReason) aiReason.value = reasonVal;
+          if (aiReasonText) aiReasonText.textContent = reasonVal;
+          if (aiEnglishSummary) aiEnglishSummary.value = summaryVal;
+
+          // Update inline feedback card immediately visible below the button
+          if (aiInlineFeedback) {
+            if (aiInlineCategory) aiInlineCategory.textContent = categoryVal;
+            if (aiInlinePriority) {
+              aiInlinePriority.textContent = priorityVal;
+              aiInlinePriority.className = 'badge';
+              if (priorityVal === 'High') {
+                aiInlinePriority.classList.add('badge-inprogress');
+              } else if (priorityVal === 'Medium') {
+                aiInlinePriority.classList.add('badge-pending');
+              } else {
+                aiInlinePriority.classList.add('badge-resolved');
+              }
+            }
+            if (aiInlineReason) aiInlineReason.textContent = reasonVal;
+            aiInlineFeedback.style.display = 'block';
+          }
+
+          if (analyzeBtnText) analyzeBtnText.textContent = 'Re-analyze with AI';
           aiAnalyzed = true;
         } else {
-          showAlert(json.error || 'AI analysis could not complete. You can still submit manually.', 'warning');
+          const errMsg = (json && json.error) || 'AI analysis could not complete. You can still submit manually.';
+          showAlert(`AI Analysis: ${errMsg}`, 'warning');
           fallbackAiValues();
+          if (analyzeBtnText) analyzeBtnText.textContent = getTranslation('btnAnalyze') || 'Analyze with AI';
         }
       } catch (err) {
         console.error('AI call error:', err);
-        showAlert('Could not reach AI analysis service. You can still submit your complaint directly.', 'warning');
+        showAlert('Could not reach the AI analysis service. Please check your connection or choose category manually.', 'warning');
         fallbackAiValues();
+        if (analyzeBtnText) analyzeBtnText.textContent = getTranslation('btnAnalyze') || 'Analyze with AI';
       } finally {
         btnAnalyzeAI.disabled = false;
-        analyzeBtnText.textContent = getTranslation('btnAnalyze');
       }
     });
   }
@@ -307,6 +340,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (charCount) charCount.textContent = '0';
       if (photoPreviewContainer) photoPreviewContainer.style.display = 'none';
       aiAnalyzed = false;
+      if (aiInlineFeedback) aiInlineFeedback.style.display = 'none';
+      if (analyzeBtnText) analyzeBtnText.textContent = getTranslation('btnAnalyze') || 'Analyze with AI';
       if (btnTriggerSubmit) btnTriggerSubmit.disabled = false;
       if (submitBtnText) submitBtnText.textContent = getTranslation('btnSubmit');
 
