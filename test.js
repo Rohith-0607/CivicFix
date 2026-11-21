@@ -211,7 +211,107 @@ const server = app.listen(0, '127.0.0.1', async () => {
     }
     console.log(`✓ 16. Workflow: Admin status change to "In Progress" verified on citizen tracking`);
 
-    console.log('\n>>> ALL 16 REGRESSION & SECURITY AUDIT TESTS PASSED SUCCESSFULLY! <<<\n');
+    // 17. Citizen Authentication (Registration & Login)
+    const citizenEmail = 'test_citizen_alpha@example.com';
+    const rSignup = await fetch(`${base}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: citizenEmail, password: 'password123' }),
+    });
+    const jSignup = await rSignup.json();
+    if (rSignup.status !== 201 || !jSignup.success) {
+      throw new Error(`Citizen signup failed: ${JSON.stringify(jSignup)}`);
+    }
+    const citizenToken = jSignup.data.token;
+    const citizenId = jSignup.data.user.id;
+    console.log(`✓ 17. Citizen registration: status=${rSignup.status}, user_id="${citizenId}"`);
+
+    // 18. Authenticated Complaint Submission
+    const authForm = new FormData();
+    authForm.append('description', 'Leaking water pipeline near community hall.');
+    authForm.append('location_area', 'Madhapur');
+    authForm.append('category', 'Water Leakage');
+    authForm.append('priority', 'High');
+    const rAuthSubmit = await fetch(`${base}/api/complaints`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${citizenToken}` },
+      body: authForm,
+    });
+    const jAuthSubmit = await rAuthSubmit.json();
+    const citizenTrackingCode = jAuthSubmit.data.tracking_code;
+    console.log(`✓ 18. Authenticated complaint submission: tracking_code="${citizenTrackingCode}"`);
+
+    // 19. Citizen Dashboard: "My Complaints" isolation
+    const rMyComplaints = await fetch(`${base}/api/citizen/complaints`, {
+      headers: { Authorization: `Bearer ${citizenToken}` },
+    });
+    const jMyComplaints = await rMyComplaints.json();
+    if (rMyComplaints.status !== 200 || !jMyComplaints.data.complaints.some(c => c.tracking_code === citizenTrackingCode)) {
+      throw new Error(`Citizen dashboard missing user's complaint`);
+    }
+    // Verify it does NOT include the guest complaint from test 4
+    if (jMyComplaints.data.complaints.some(c => c.tracking_code === trackingCode)) {
+      throw new Error(`Citizen dashboard leaked anonymous guest complaint!`);
+    }
+    console.log(`✓ 19. Citizen dashboard: returns own complaints (${jMyComplaints.data.total}) and strictly isolates from guests`);
+
+    // 20. Ownership Protection: Citizen B cannot view Citizen A's complaint detail
+    const rSignupB = await fetch(`${base}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'citizen_beta@example.com', password: 'password123' }),
+    });
+    const jSignupB = await rSignupB.json();
+    const citizenTokenB = jSignupB.data.token;
+    const citizenAComplaintId = jMyComplaints.data.complaints[0].id;
+
+    const rCrossAccess = await fetch(`${base}/api/citizen/complaints/${citizenAComplaintId}`, {
+      headers: { Authorization: `Bearer ${citizenTokenB}` },
+    });
+    if (rCrossAccess.status !== 404) {
+      throw new Error(`Expected 404 for cross-citizen access, got status ${rCrossAccess.status}`);
+    }
+    console.log(`✓ 20. Ownership Protection: Cross-citizen access to complaint detail rejected (HTTP 404)`);
+
+    // 21. Security: Guest attempting to access protected citizen complaints is rejected (HTTP 401)
+    const rGuestAccess = await fetch(`${base}/api/citizen/complaints`);
+    if (rGuestAccess.status !== 401) {
+      throw new Error(`Expected 401 for unauthenticated citizen route, got ${rGuestAccess.status}`);
+    }
+    console.log(`✓ 21. Security: Unauthenticated access to citizen complaints dashboard rejected (HTTP 401)`);
+
+    // 22. Security: Invalid supplied Bearer token on /api/complaints rejected with HTTP 401
+    const invalidForm = new FormData();
+    invalidForm.append('description', 'Test complaint with invalid token attached.');
+    invalidForm.append('location_area', 'Kukatpally');
+    const rInvalidToken = await fetch(`${base}/api/complaints`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fake_invalid_expired_token' },
+      body: invalidForm,
+    });
+    if (rInvalidToken.status !== 401) {
+      throw new Error(`Expected 401 for invalid supplied token, got ${rInvalidToken.status}`);
+    }
+    console.log(`✓ 22. Security: Invalid/expired supplied token rejected with HTTP 401 (not silently accepted as guest)`);
+
+    // 23. Security: Citizen account cannot access admin endpoints (HTTP 403)
+    const rCitizenToAdmin = await fetch(`${base}/api/admin/summary`, {
+      headers: { Authorization: `Bearer ${citizenToken}` },
+    });
+    if (rCitizenToAdmin.status !== 403) {
+      throw new Error(`Expected 403 when citizen accesses admin endpoint, got ${rCitizenToAdmin.status}`);
+    }
+    console.log(`✓ 23. Security: Citizen account strictly denied access to /api/admin/* (HTTP 403 Forbidden)`);
+
+    // 24. Privacy: Public complaint tracking strictly omits private photo URLs and personal data
+    const rPublicTrack = await fetch(`${base}/api/track/${citizenTrackingCode}`);
+    const jPublicTrack = await rPublicTrack.json();
+    if (jPublicTrack.data.photo_url || jPublicTrack.data.reporter_name || jPublicTrack.data.reporter_user_id) {
+      throw new Error(`Public tracking exposed private data or photo URL: ${JSON.stringify(jPublicTrack.data)}`);
+    }
+    console.log(`✓ 24. Privacy: Public tracking strictly omits private photo URL, reporter_name, and user ID`);
+
+    console.log('\n>>> ALL 24 REGRESSION, CITIZEN AUTH & SECURITY AUDIT TESTS PASSED SUCCESSFULLY! <<<\n');
   } catch (err) {
     console.error('❌ Test failed:', err);
     process.exitCode = 1;

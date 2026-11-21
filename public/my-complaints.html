@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Complaints — CivicFix AI</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="brand">
+        <i data-lucide="landmark" class="icon-24" style="color: var(--color-lime);"></i>
+        <div class="brand-text">
+          <span class="brand-name">CivicFix AI</span>
+          <span class="brand-sub">Citizen Portal</span>
+        </div>
+      </a>
+
+      <nav class="nav-group desktop-nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/issues" class="nav-link">Public Issues</a>
+        <a href="/track" class="nav-link">Track Code</a>
+        <a href="/my-complaints" class="nav-link active">My Complaints</a>
+        <a href="/report" class="nav-cta">
+          <i data-lucide="plus" class="icon-16"></i> Report Issue
+        </a>
+        <button id="btnLogoutTop" class="btn btn-secondary btn-sm" style="margin-left: 8px;">
+          <i data-lucide="log-out" class="icon-16"></i> Sign Out
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Prototype Notice Bar -->
+  <aside class="prototype-banner">
+    <div class="container">
+      <span>CivicFix AI is an independent student prototype. Reports are displayed for demonstration review.</span>
+      <div id="userEmailBadge" style="font-size: 11px; font-weight: 600; color: var(--color-dark-teal);"></div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; padding: 28px 0 48px 0;">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+        <div>
+          <h1 style="font-size: 26px; margin-bottom: 4px;">My Submitted Complaints</h1>
+          <p style="color: var(--color-text-muted); font-size: 14px; margin-bottom: 0;">
+            View and monitor all reports submitted under your account.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="/report" class="btn btn-green">
+            <i data-lucide="plus" class="icon-16"></i> File New Report
+          </a>
+        </div>
+      </div>
+
+      <div id="dashboardAlert" class="alert" style="display: none;"></div>
+
+      <!-- Filters & Search -->
+      <div class="card" style="padding: 14px 18px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label for="statusFilter" style="font-size: 13px; font-weight: 600; color: var(--color-text-muted);">Status:</label>
+            <select id="statusFilter" class="form-control" style="font-size: 13px; min-height: 34px; padding: 4px 10px; width: auto;">
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div style="font-size: 13px; color: var(--color-text-muted);">
+            Showing <strong id="complaintsCount">0</strong> reports
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" style="text-align: center; padding: 48px 16px;">
+        <div style="font-size: 15px; color: var(--color-text-muted);">Loading your complaints...</div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="card" style="display: none; text-align: center; padding: 48px 16px;">
+        <div style="width: 56px; height: 56px; background-color: var(--color-green-light); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+          <i data-lucide="inbox" class="icon-28" style="color: var(--color-green);"></i>
+        </div>
+        <h2 style="font-size: 18px; margin-bottom: 6px;">No Complaints Found</h2>
+        <p style="color: var(--color-text-muted); font-size: 14px; max-width: 400px; margin: 0 auto 20px auto;">
+          You haven't filed any civic complaints yet. If you see road damage, garbage, or leaking water, file a report now!
+        </p>
+        <a href="/report" class="btn btn-green">
+          <i data-lucide="plus" class="icon-16"></i> Report an Issue
+        </a>
+      </div>
+
+      <!-- Complaints Table / List -->
+      <div id="complaintsTableWrapper" class="table-wrapper" style="display: none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Tracking Code</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="complaintsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Read-Only Complaint Details Modal -->
+  <div id="detailModal" class="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 style="font-size: 18px; margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="file-text" class="icon-20"></i> Complaint Details
+        </h2>
+        <button type="button" id="btnCloseModal" class="btn-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="background-color: var(--color-offwhite); padding: 12px 16px; border-radius: var(--radius-btn); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 11px; text-transform: uppercase; color: var(--color-text-muted); font-weight: 700;">Tracking Code</span>
+            <div id="modalCode" class="mono" style="font-size: 18px; font-weight: 800; color: var(--color-dark-teal);">CF-XXXXXXXX</div>
+          </div>
+          <div>
+            <span id="modalStatusBadge" class="badge">Pending</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category & Department</label>
+          <div style="font-size: 14px; font-weight: 600; color: var(--color-text);">
+            <span id="modalCategory">—</span> • <span id="modalDept" style="color: var(--color-text-muted); font-weight: 400;">—</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location Area</label>
+          <div id="modalArea" style="font-size: 14px; color: var(--color-text);">—</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description / Summary</label>
+          <div id="modalDesc" style="font-size: 13px; color: var(--color-text); line-height: 1.5; background: #fff; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-btn);">—</div>
+        </div>
+
+        <div id="modalPhotoContainer" class="form-group" style="display: none;">
+          <label class="form-label">Attached Photo Evidence</label>
+          <div style="max-height: 240px; overflow: hidden; border-radius: var(--radius-btn); border: 1px solid var(--color-border);">
+            <img id="modalPhotoImg" src="" alt="Evidence photo" style="width: 100%; height: auto; display: block; object-fit: cover;">
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="font-size: 11px; margin-top: 16px; margin-bottom: 0;">
+          <strong>Notice:</strong> As an applicant, you can review this complaint. Official complaint status updates are performed by municipal administrators.
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" id="btnCloseModalBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!isLoggedIn()) {
+        window.location.href = '/login?returnUrl=/my-complaints';
+        return;
+      }
+
+      const user = getAuthUser();
+      const userBadge = document.getElementById('userEmailBadge');
+      if (user && user.email) {
+        userBadge.textContent = `Signed in as: ${user.email}`;
+      }
+
+      document.getElementById('btnLogoutTop').addEventListener('click', async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        clearAuthSession();
+        window.location.href = '/login';
+      });
+
+      const loadingState = document.getElementById('loadingState');
+      const emptyState = document.getElementById('emptyState');
+      const tableWrapper = document.getElementById('complaintsTableWrapper');
+      const tableBody = document.getElementById('complaintsTableBody');
+      const countLabel = document.getElementById('complaintsCount');
+      const statusFilter = document.getElementById('statusFilter');
+
+      let allComplaints = [];
+
+      async function loadComplaints() {
+        try {
+          const res = await authFetch('/api/citizen/complaints');
+          const json = await res.json();
+
+          loadingState.style.display = 'none';
+
+          if (res.ok && json.success && json.data) {
+            allComplaints = json.data.complaints || [];
+            renderComplaints();
+          } else {
+            showError(json.error || 'Failed to load complaints.');
+          }
+        } catch (err) {
+          loadingState.style.display = 'none';
+          showError('Network error loading complaints.');
+        }
+      }
+
+      function renderComplaints() {
+        const filterVal = statusFilter.value;
+        const filtered = filterVal === 'All'
+          ? allComplaints
+          : allComplaints.filter(c => c.status === filterVal);
+
+        countLabel.textContent = filtered.length;
+
+        if (filtered.length === 0) {
+          tableWrapper.style.display = 'none';
+          emptyState.style.display = 'block';
+          return;
+        }
+
+        emptyState.style.display = 'none';
+        tableWrapper.style.display = 'block';
+        tableBody.innerHTML = '';
+
+        filtered.forEach(c => {
+          const tr = document.createElement('tr');
+          const statusClass = c.status === 'Resolved' ? 'badge-resolved' : c.status === 'In Progress' ? 'badge-inprogress' : 'badge-pending';
+          const priorityClass = c.priority === 'High' ? 'badge-inprogress' : c.priority === 'Medium' ? 'badge-pending' : 'badge-resolved';
+
+          tr.innerHTML = `
+            <td class="mono" style="font-weight: 700; color: var(--color-dark-teal);">${escapeHtml(c.tracking_code)}</td>
+            <td><strong>${escapeHtml(c.category || 'Unclassified')}</strong></td>
+            <td>${escapeHtml(c.location_area || '—')}</td>
+            <td><span class="badge ${priorityClass}">${escapeHtml(c.priority || 'Medium')}</span></td>
+            <td><span class="badge ${statusClass}">${escapeHtml(c.status || 'Pending')}</span></td>
+            <td style="font-size: 12px; color: var(--color-text-muted);">${formatDate(c.created_at)}</td>
+            <td style="text-align: right;">
+              <button type="button" class="btn btn-secondary btn-sm btn-view-detail" data-id="${c.id}">
+                Details
+              </button>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-view-detail').forEach(btn => {
+          btn.addEventListener('click', () => openDetail(btn.getAttribute('data-id')));
+        });
+      }
+
+      statusFilter.addEventListener('change', renderComplaints);
+
+      // Detail modal logic
+      const modal = document.getElementById('detailModal');
+      const btnCloseModal = document.getElementById('btnCloseModal');
+      const btnCloseModalBtn = document.getElementById('btnCloseModalBtn');
+
+      function closeModal() {
+        modal.style.display = 'none';
+      }
+
+      btnCloseModal.addEventListener('click', closeModal);
+      btnCloseModalBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      async function openDetail(id) {
+        try {
+          const res = await authFetch(`/api/citizen/complaints/${encodeURIComponent(id)}`);
+          const json = await res.json();
+          if (res.ok && json.success && json.data) {
+            const d = json.data;
+            document.getElementById('modalCode').textContent = d.tracking_code;
+            document.getElementById('modalCategory').textContent = d.category || 'Unclassified';
+            document.getElementById('modalDept').textContent = d.suggested_department || 'Municipal Services';
+            document.getElementById('modalArea').textContent = d.location_area || '—';
+            document.getElementById('modalDesc').textContent = d.description || d.english_summary || '—';
+
+            const badge = document.getElementById('modalStatusBadge');
+            badge.textContent = d.status || 'Pending';
+            badge.className = 'badge ' + (d.status === 'Resolved' ? 'badge-resolved' : d.status === 'In Progress' ? 'badge-inprogress' : 'badge-pending');
+
+            const photoBox = document.getElementById('modalPhotoContainer');
+            const photoImg = document.getElementById('modalPhotoImg');
+            if (d.photo_url) {
+              photoImg.src = d.photo_url;
+              photoBox.style.display = 'block';
+            } else {
+              photoBox.style.display = 'none';
+            }
+
+            modal.style.display = 'flex';
+          }
+        } catch {
+          alert('Could not load complaint details.');
+        }
+      }
+
+      function showError(msg) {
+        const alertBox = document.getElementById('dashboardAlert');
+        alertBox.className = 'alert alert-error';
+        alertBox.textContent = msg;
+        alertBox.style.display = 'block';
+      }
+
+      loadComplaints();
+    });
+  </script>
+</body>
+</html>

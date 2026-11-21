@@ -227,6 +227,7 @@ async function createComplaint(complaintData) {
     normalized_area: normalizedArea,
     landmark: complaintData.landmark || null,
     reporter_name: complaintData.reporter_name || null,
+    reporter_user_id: complaintData.reporter_user_id || null,
     photo_path: complaintData.photo_path || null,
     latitude: validLat,
     longitude: validLng,
@@ -386,12 +387,22 @@ async function getComplaintByTrackingCode(trackingCode) {
       .single();
 
     if (error || !data) return null;
-    const photo_url = data.photo_path ? await getSignedPhotoUrl(data.photo_path, 300) : null;
-    return { ...data, photo_url, has_photo: Boolean(data.photo_path) };
+    // Security: Public tracking redacts personal data and private evidence photos
+    return {
+      tracking_code: data.tracking_code,
+      category: data.category,
+      location_area: data.location_area,
+      priority: data.priority,
+      suggested_department: data.suggested_department,
+      status: data.status,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      has_photo: Boolean(data.photo_path),
+      photo_url: null,
+    };
   } else {
     const item = memoryStore.complaints.find((c) => c.tracking_code.toUpperCase() === code);
     if (!item) return null;
-    const photo_url = item.photo_path ? await getSignedPhotoUrl(item.photo_path, 300) : null;
     return {
       tracking_code: item.tracking_code,
       category: item.category,
@@ -401,9 +412,8 @@ async function getComplaintByTrackingCode(trackingCode) {
       status: item.status,
       created_at: item.created_at,
       updated_at: item.updated_at,
-      photo_path: item.photo_path,
-      photo_url,
       has_photo: Boolean(item.photo_path),
+      photo_url: null,
     };
   }
 }
@@ -839,6 +849,66 @@ async function deletePhoto(photoPath) {
   }
 }
 
+/**
+ * Retrieve only complaints submitted by the authenticated citizen
+ */
+async function getCitizenComplaints(userId) {
+  if (!userId) return [];
+
+  if (isConfigured) {
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('id, tracking_code, category, priority, status, location_area, created_at, photo_path, english_summary, suggested_department')
+      .eq('reporter_user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+  } else {
+    return memoryStore.complaints
+      .filter((c) => c.reporter_user_id === userId)
+      .map((c) => ({
+        id: c.id,
+        tracking_code: c.tracking_code,
+        category: c.category,
+        priority: c.priority,
+        status: c.status,
+        location_area: c.location_area,
+        created_at: c.created_at,
+        photo_path: c.photo_path,
+        english_summary: c.english_summary,
+        suggested_department: c.suggested_department,
+      }));
+  }
+}
+
+/**
+ * Retrieve a single complaint strictly belonging to the authenticated citizen
+ */
+async function getCitizenComplaintById(userId, complaintId) {
+  if (!userId || !complaintId) return null;
+
+  if (isConfigured) {
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('*')
+      .eq('id', complaintId)
+      .eq('reporter_user_id', userId)
+      .single();
+
+    if (error || !data) return null;
+    const photo_url = data.photo_path ? await getSignedPhotoUrl(data.photo_path, 300) : null;
+    return { ...data, photo_url, has_photo: Boolean(data.photo_path) };
+  } else {
+    const found = memoryStore.complaints.find(
+      (c) => c.id === complaintId && c.reporter_user_id === userId
+    );
+    if (!found) return null;
+    const photo_url = found.photo_path ? await getSignedPhotoUrl(found.photo_path, 300) : null;
+    return { ...found, photo_url, has_photo: Boolean(found.photo_path) };
+  }
+}
+
 module.exports = {
   supabase,
   isConfigured,
@@ -847,6 +917,8 @@ module.exports = {
   getPublicIssues,
   getPublicIssueCounts,
   getComplaintByTrackingCode,
+  getCitizenComplaints,
+  getCitizenComplaintById,
   getAdminComplaints,
   getComplaintById,
   updateComplaint,

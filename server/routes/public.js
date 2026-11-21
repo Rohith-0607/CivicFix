@@ -11,7 +11,7 @@ const {
   supabase,
 } = require('../supabase');
 const { analyzeComplaint, ALLOWED_CATEGORIES, ALLOWED_PRIORITIES } = require('../ai');
-const { DEMO_TOKEN, isDemoAllowed } = require('../auth');
+const { DEMO_TOKEN, isDemoAllowed, optionalCitizenAuth } = require('../auth');
 
 const router = express.Router();
 
@@ -75,8 +75,9 @@ router.post('/analyze', async (req, res) => {
 /**
  * POST /api/complaints
  * Multipart form submission (photo optional)
+ * Supports both anonymous guests and authenticated citizens
  */
-router.post('/complaints', upload.single('photo'), async (req, res) => {
+router.post('/complaints', optionalCitizenAuth, upload.single('photo'), async (req, res) => {
   let uploadedPhotoPath = null;
 
   try {
@@ -129,11 +130,15 @@ router.post('/complaints', upload.single('photo'), async (req, res) => {
     const safeCategory = ALLOWED_CATEGORIES.includes(category) ? category : 'Unclassified';
     const safePriority = ALLOWED_PRIORITIES.includes(priority) ? priority : 'Needs review';
 
+    // Security: Derive reporter_user_id strictly from verified token, never from body
+    const verifiedReporterId = req.user ? req.user.id : null;
+
     const complaintData = {
       description: description.trim(),
       location_area: location_area.trim(),
       landmark: landmark ? landmark.trim().slice(0, 120) : null,
       reporter_name: reporter_name ? reporter_name.trim().slice(0, 80) : null,
+      reporter_user_id: verifiedReporterId,
       photo_path: uploadedPhotoPath,
       category: safeCategory,
       priority: safePriority,

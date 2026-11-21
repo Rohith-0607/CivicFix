@@ -16,6 +16,7 @@ create table if not exists complaints (
   landmark text,
   reporter_name text,
   photo_path text,
+  reporter_user_id uuid references auth.users(id) on delete set null,
   latitude double precision,
   longitude double precision,
   category text not null check (category in ('Road Damage', 'Garbage', 'Water Leakage', 'Streetlights', 'Drainage', 'Other', 'Unclassified')),
@@ -35,6 +36,7 @@ create index if not exists idx_complaints_created_at on complaints (created_at d
 create index if not exists idx_complaints_normalized_area on complaints (normalized_area);
 create index if not exists idx_complaints_status on complaints (status);
 create index if not exists idx_complaints_category on complaints (category);
+create index if not exists idx_complaints_reporter_user_id on complaints (reporter_user_id);
 
 -- Trigger to automatically update updated_at timestamp
 create or replace function update_updated_at_column()
@@ -60,6 +62,13 @@ alter table complaints enable row level security;
 -- (Anon and public roles remain blocked by RLS)
 grant usage on schema public to service_role;
 grant select, insert, update, delete on table public.complaints to service_role;
+
+-- RLS Policy: Authenticated citizens can view only their own complaints
+create policy "Citizens can view own complaints"
+on public.complaints
+for select
+to authenticated
+using (auth.uid() = reporter_user_id);
 
 -- Storage Bucket Setup for Private Complaint Evidence Photos
 -- Run in Supabase SQL Editor:
